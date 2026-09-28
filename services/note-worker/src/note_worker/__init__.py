@@ -1,0 +1,1 @@
+"""Chartwise note generation worker."""

@@ -1,0 +1,110 @@
+{
+  "summary": {
+    "patients": 25,
+    "cases": 1084,
+    "recall_in_scope": 1.0,
+    "false_positive_rate": 0.0,
+    "precision_in_scope": 1.0
+  },
+  "categories": [
+    {
+      "category": "clean",
+      "description": "Draft supported by the transcript and record",
+      "should_flag": false,
+      "in_scope": true,
+      "cases": 100,
+      "flagged": 0,
+      "rate": 0.0
+    },
+    {
+      "category": "clean_brand_equivalence",
+      "description": "Patient says a brand name, draft uses the generic",
+      "should_flag": false,
+      "in_scope": true,
+      "cases": 100,
+      "flagged": 0,
+      "rate": 0.0
+    },
+    {
+      "category": "clean_transcription_typo",
+      "description": "Transcript misspells a drug the draft spells correctly",
+      "should_flag": false,
+      "in_scope": true,
+      "cases": 100,
+      "flagged": 0,
+      "rate": 0.0
+    },
+    {
+      "category": "hallucinated_generic",
+      "description": "Draft starts a generic drug nobody mentioned",
+      "should_flag": true,
+      "in_scope": true,
+      "cases": 100,
+      "flagged": 100,
+      "rate": 1.0
+    },
+    {
+      "category": "hallucinated_brand",
+      "description": "Draft starts a brand-name drug nobody mentioned",
+      "should_flag": true,
+      "in_scope": true,
+      "cases": 100,
+      "flagged": 100,
+      "rate": 1.0
+    },
+    {
+      "category": "hallucinated_unlisted",
+      "description": "Drug added to the plan text but left off the model's medication list",
+      "should_flag": true,
+      "in_scope": true,
+      "cases": 100,
+      "flagged": 100,
+      "rate": 1.0
+    },
+    {
+      "category": "hallucinated_in_history",
+      "description": "Draft claims in the subjective that the patient takes an unmentioned drug",
+      "should_flag": true,
+      "in_scope": true,
+      "cases": 100,
+      "flagged": 100,
+      "rate": 1.0
+    },
+    {
+      "category": "allergy_conflict",
+      "description": "Draft starts a drug the patient is allergic to (by class)",
+      "should_flag": true,
+      "in_scope": true,
+      "cases": 100,
+      "flagged": 100,
+      "rate": 1.0
+    },
+    {
+      "category": "misspelled_hallucination",
+      "description": "Unmentioned drug, misspelled in the draft",
+      "should_flag": true,
+      "in_scope": false,
+      "cases": 100,
+      "flagged": 0,
+      "rate": 0.0
+    },
+    {
+      "category": "unknown_drug",
+      "description": "Unmentioned drug that is not in the lexicon (newer agents)",
+      "should_flag": true,
+      "in_scope": false,
+      "cases": 100,
+      "flagged": 0,
+      "rate": 0.0
+    },
+    {
+      "category": "wrong_dose",
+      "description": "Correct drug, wrong dose",
+      "should_flag": true,
+      "in_scope": false,
+      "cases": 84,
+      "flagged": 0,
+      "rate": 0.0
+    }
+  ]
+}

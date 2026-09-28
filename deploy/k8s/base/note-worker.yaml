@@ -1,0 +1,35 @@
+# Scale up to the partition count of encounter.created (6); extra replicas would sit idle. With
+# KEDA installed, a ScaledObject on consumer lag is the natural autoscaler for this workload.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: note-worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: note-worker }
+  template:
+    metadata:
+      labels: { app: note-worker }
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9100"
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 10001 }
+      # A batch in progress is allowed to finish and commit before the pod stops.
+      terminationGracePeriodSeconds: 120
+      containers:
+        - name: note-worker
+          image: chartwise/note-worker
+          ports: [{ name: metrics, containerPort: 9100 }]
+          envFrom:
+            - configMapRef: { name: chartwise-config }
+          env:
+            - { name: WORKER_PASSWORD, valueFrom: { secretKeyRef: { name: chartwise-secrets, key: WORKER_PASSWORD } } }
+          livenessProbe:
+            tcpSocket: { port: metrics }
+            periodSeconds: 15
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { memory: 512Mi }
+          securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true }

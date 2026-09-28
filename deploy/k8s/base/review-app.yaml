@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: review-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: review-app }
+  template:
+    metadata:
+      labels: { app: review-app }
+    spec:
+      securityContext: { runAsNonRoot: true }
+      containers:
+        - name: review-app
+          image: chartwise/review-app
+          ports: [{ name: http, containerPort: 8080 }]
+          env:
+            - { name: ENCOUNTER_SERVICE_URL, value: "http://encounter-service:8080" }
+          readinessProbe:
+            httpGet: { path: /, port: http }
+          resources:
+            requests: { cpu: 25m, memory: 32Mi }
+            limits: { memory: 128Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: review-app
+spec:
+  selector: { app: review-app }
+  ports: [{ name: http, port: 80, targetPort: http }]

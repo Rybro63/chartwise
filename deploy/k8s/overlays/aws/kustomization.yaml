@@ -1,0 +1,37 @@
+# EKS deployment. Postgres is RDS; Kafka, Redis and HAPI run in-cluster to keep the demo cheap
+# (managed Kafka alone costs more per hour than the rest combined).
+#
+# Before applying:
+#   1. deploy/terraform/aws: terraform apply
+#   2. ./render.sh   (writes rds.env and images from terraform outputs)
+#   3. kubectl create secret generic chartwise-secrets -n chartwise --from-env-file=secrets.env
+#      (DB_USER, DB_PASSWORD, JWT_SECRET, ENCRYPTION_KEY, SEED_PASSWORD, WORKER_PASSWORD, ANTHROPIC_API_KEY)
+#   4. kubectl apply -k .
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: chartwise
+resources:
+  - ../../base
+  - ../../infra/core
+  - db-init.yaml
+configMapGenerator:
+  - name: chartwise-config
+    behavior: merge
+    envs: [rds.env]
+replacements:
+  # HAPI uses the same RDS instance, database "hapi".
+  - source: { kind: ConfigMap, name: chartwise-config, fieldPath: data.HAPI_DB_URL }
+    targets:
+      - select: { kind: Deployment, name: hapi }
+        fieldPaths:
+          - "spec.template.spec.containers.0.env.[name=SPRING_DATASOURCE_URL].value"
+  - source: { kind: ConfigMap, name: chartwise-config, fieldPath: data.DB_HOST }
+    targets:
+      - select: { kind: Job, name: db-init }
+        fieldPaths:
+          - "spec.template.spec.containers.0.env.[name=PGHOST].value"
+images:
+  - { name: chartwise/encounter-service, newName: ECR_REGISTRY/chartwise/encounter-service, newTag: latest }
+  - { name: chartwise/llm-gateway, newName: ECR_REGISTRY/chartwise/llm-gateway, newTag: latest }
+  - { name: chartwise/note-worker, newName: ECR_REGISTRY/chartwise/note-worker, newTag: latest }
+  - { name: chartwise/review-app, newName: ECR_REGISTRY/chartwise/review-app, newTag: latest }

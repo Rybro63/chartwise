@@ -1,0 +1,17 @@
+package com.chartwise.encounter.audit;
+
+public enum AuditAction {
+    ENCOUNTER_CREATED,
+    ENCOUNTER_VIEWED,
+    NOTE_VERSION_VIEWED,
+    DRAFT_CONTEXT_READ,
+    DRAFT_RECEIVED,
+    DRAFT_FAILED,
+    NOTE_EDITED,
+    NOTE_APPROVED,
+    NOTE_FILED,
+    FILING_FAILED,
+    RETRY_REQUESTED,
+    AUDIT_VIEWED,
+    ENCOUNTER_PURGED
+}

@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hapi
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: hapi }
+  template:
+    metadata:
+      labels: { app: hapi }
+    spec:
+      containers:
+        - name: hapi
+          image: hapiproject/hapi:v8.12.0-1
+          env:
+            - { name: SPRING_DATASOURCE_URL, value: "jdbc:postgresql://postgres:5432/hapi" }
+            - { name: SPRING_DATASOURCE_USERNAME, valueFrom: { secretKeyRef: { name: chartwise-secrets, key: DB_USER } } }
+            - { name: SPRING_DATASOURCE_PASSWORD, valueFrom: { secretKeyRef: { name: chartwise-secrets, key: DB_PASSWORD } } }
+            - { name: SPRING_DATASOURCE_DRIVERCLASSNAME, value: org.postgresql.Driver }
+            - { name: SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT, value: ca.uhn.fhir.jpa.model.dialect.HapiFhirPostgresDialect }
+            - { name: SPRING_JPA_PROPERTIES_HIBERNATE_SEARCH_ENABLED, value: "false" }
+            - { name: HAPI_FHIR_FHIR_VERSION, value: R4 }
+            - { name: HAPI_FHIR_CLIENT_ID_STRATEGY, value: ANY }
+            - { name: HAPI_FHIR_BYPASS_VALIDATION, value: "true" }
+          ports: [{ containerPort: 8080 }]
+          readinessProbe:
+            httpGet: { path: /fhir/metadata, port: 8080 }
+            periodSeconds: 10
+            failureThreshold: 60
+          resources:
+            requests: { cpu: 250m, memory: 1Gi }
+            limits: { memory: 2Gi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hapi
+spec:
+  selector: { app: hapi }
+  ports: [{ port: 8080 }]

@@ -1,0 +1,20 @@
+# Non-secret settings. Overlays patch endpoints; secrets come from the `chartwise-secrets` Secret
+# (generated in the kind overlay, created out of band on AWS).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chartwise-config
+data:
+  DB_URL: jdbc:postgresql://postgres:5432/chartwise
+  KAFKA_BOOTSTRAP: kafka:9092
+  FHIR_BASE_URL: http://hapi:8080/fhir
+  REDIS_ADDR: redis:6379
+  ENCOUNTER_SERVICE_URL: http://encounter-service:8080
+  GATEWAY_TARGET: llm-gateway:50051
+  LLM_PROVIDER: fake
+  LLM_MODEL: claude-opus-5
+  FAKE_HALLUCINATION_RATE: "0.1"
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+  OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
+  DRAFT_SLO: 30s
+  SEED_USERS: "true"

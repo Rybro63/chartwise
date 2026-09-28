@@ -1,0 +1,47 @@
+groups:
+  - name: chartwise-slo
+    rules:
+      # SLO: 95% of notes drafted (encounter created -> draft ready for review) within 30 seconds.
+      - record: chartwise:draft_within_slo:ratio_5m
+        expr: |
+          sum(rate(chartwise_note_draft_latency_seconds_bucket{le="30.0"}[5m]))
+            / sum(rate(chartwise_note_draft_latency_seconds_count[5m]))
+      - record: chartwise:draft_latency_seconds:p95_5m
+        expr: histogram_quantile(0.95, sum by (le) (rate(chartwise_note_draft_latency_seconds_bucket[5m])))
+
+      - alert: DraftLatencySLOBreached
+        expr: chartwise:draft_within_slo:ratio_5m < 0.95 and sum(rate(chartwise_note_draft_latency_seconds_count[5m])) > 0
+        for: 2m
+        labels: { severity: page }
+        annotations:
+          summary: Fewer than 95% of notes are being drafted within 30 seconds
+          description: "{{ $value | humanizePercentage }} of drafts in the last 5 minutes met the 30 s target."
+
+  - name: chartwise-pipeline
+    rules:
+      - alert: LlmCircuitOpen
+        expr: max(llm_gateway_circuit_state) == 2
+        for: 30s
+        labels: { severity: page }
+        annotations:
+          summary: The LLM gateway circuit breaker is open; drafts are queueing
+
+      - alert: DraftBacklogGrowing
+        expr: sum(kafka_consumergroup_lag{consumergroup="note-worker", topic="encounter.created"}) > 50
+        for: 5m
+        labels: { severity: ticket }
+        annotations:
+          summary: More than 50 encounters waiting to be drafted for 5 minutes
+
+      - alert: DeadLettersAppearing
+        expr: sum(increase(worker_dead_letters_total[10m])) > 0 or sum(increase(chartwise_dead_letters_total[10m])) > 0
+        labels: { severity: ticket }
+        annotations:
+          summary: Messages are being dead-lettered; check the admin view for failed encounters
+
+      - alert: OutboxStalled
+        expr: max(chartwise_outbox_oldest_age_seconds) > 60
+        for: 1m
+        labels: { severity: page }
+        annotations:
+          summary: Outbox events are not being published to Kafka

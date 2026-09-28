@@ -1,0 +1,49 @@
+# Manual deploy to the demo EKS cluster created by deploy/terraform/aws. The cluster only exists
+# while a demo is being recorded; see that README for the cost warning and teardown.
+name: deploy-eks
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag: { description: Image tag (git SHA) to deploy, required: true }
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: aws-demo
+    steps:
+      - uses: actions/checkout@v5
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr
+      - name: Copy images from GHCR to ECR
+        run: |
+          for s in encounter-service llm-gateway note-worker review-app; do
+            src=ghcr.io/${{ github.repository_owner }}/chartwise-$s:${{ inputs.image_tag }}
+            dst=${{ steps.ecr.outputs.registry }}/chartwise/$s:${{ inputs.image_tag }}
+            docker pull "$src" && docker tag "$src" "$dst" && docker push "$dst"
+          done
+      - uses: hashicorp/setup-terraform@v3
+        with: { terraform_wrapper: false }
+      - name: Render and apply
+        env: { IMAGE_TAG: "${{ inputs.image_tag }}" }
+        run: |
+          aws eks update-kubeconfig --name chartwise
+          cd deploy/k8s/overlays/aws
+          echo "DB_HOST=${{ secrets.DB_HOST }}" > rds.env
+          echo "DB_URL=jdbc:postgresql://${{ secrets.DB_HOST }}:5432/chartwise?sslmode=require" >> rds.env
+          echo "HAPI_DB_URL=jdbc:postgresql://${{ secrets.DB_HOST }}:5432/hapi?sslmode=require" >> rds.env
+          for s in encounter-service llm-gateway note-worker review-app; do
+            kustomize edit set image "chartwise/$s=${{ steps.ecr.outputs.registry }}/chartwise/$s:$IMAGE_TAG"
+          done
+          kubectl apply -k .
+          for d in encounter-service llm-gateway note-worker review-app; do
+            kubectl -n chartwise rollout status deploy/$d --timeout=600s
+          done

@@ -1,0 +1,37 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: chartwise
+resources:
+  - ../../base
+  - ../../infra/core
+  - ../../infra/postgres
+# Dev-only values. Never reuse them outside a local cluster.
+secretGenerator:
+  - name: chartwise-secrets
+    literals:
+      - DB_USER=chartwise
+      - DB_PASSWORD=chartwise
+      - JWT_SECRET=ZGV2LW9ubHktY2hhcnR3aXNlLWp3dC1zZWNyZXQtY2hhbmdlLW1lLTAwMDAwMA==
+      - ENCRYPTION_KEY=ZGV2LW9ubHktY2hhcnR3aXNlLWFlcy1rZXktMzJieXQ=
+      - SEED_PASSWORD=chartwise-dev
+      - WORKER_PASSWORD=chartwise-worker-dev
+generatorOptions:
+  disableNameSuffixHash: true
+# Images are built locally and loaded with `kind load docker-image` (see kind-up.sh).
+images:
+  - { name: chartwise/encounter-service, newName: chartwise-encounter-service, newTag: latest }
+  - { name: chartwise/llm-gateway, newName: chartwise-llm-gateway, newTag: latest }
+  - { name: chartwise/note-worker, newName: chartwise-note-worker, newTag: latest }
+  - { name: chartwise/review-app, newName: chartwise-review-app, newTag: latest }
+patches:
+  # Locally loaded images must not be pulled from a registry.
+  - target: { kind: Deployment, name: "encounter-service|llm-gateway|note-worker|review-app" }
+    patch: |
+      - op: add
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: Never
+  - target: { kind: Deployment, name: llm-gateway }
+    patch: |
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: { name: CHAOS_ENABLED, value: "true" }

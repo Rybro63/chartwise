@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: encounter-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: encounter-service }
+  template:
+    metadata:
+      labels: { app: encounter-service }
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: /actuator/prometheus
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 10001 }
+      containers:
+        - name: encounter-service
+          image: chartwise/encounter-service
+          ports: [{ name: http, containerPort: 8080 }]
+          envFrom:
+            - configMapRef: { name: chartwise-config }
+          env:
+            - { name: DB_USER, valueFrom: { secretKeyRef: { name: chartwise-secrets, key: DB_USER } } }
+            - { name: DB_PASSWORD, valueFrom: { secretKeyRef: { name: chartwise-secrets, key: DB_PASSWORD } } }
+            - { name: JWT_SECRET, valueFrom: { secretKeyRef: { name: chartwise-secrets, key: JWT_SECRET } } }
+            - { name: ENCRYPTION_KEY, valueFrom: { secretKeyRef: { name: chartwise-secrets, key: ENCRYPTION_KEY } } }
+            - { name: SEED_PASSWORD, valueFrom: { secretKeyRef: { name: chartwise-secrets, key: SEED_PASSWORD } } }
+            - { name: WORKER_PASSWORD, valueFrom: { secretKeyRef: { name: chartwise-secrets, key: WORKER_PASSWORD } } }
+          readinessProbe:
+            httpGet: { path: /actuator/health/readiness, port: http }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: http }
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          startupProbe:
+            httpGet: { path: /actuator/health/liveness, port: http }
+            failureThreshold: 60
+            periodSeconds: 3
+          resources:
+            requests: { cpu: 250m, memory: 512Mi }
+            limits: { memory: 1Gi }
+          securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: false }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: encounter-service
+spec:
+  selector: { app: encounter-service }
+  ports: [{ name: http, port: 8080, targetPort: http }]
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: encounter-service
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels: { app: encounter-service }

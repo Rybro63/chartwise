@@ -1,0 +1,95 @@
+spring:
+  application:
+    name: encounter-service
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/chartwise}
+    username: ${DB_USER:chartwise}
+    password: ${DB_PASSWORD:chartwise}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    producer:
+      acks: all
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        enable.idempotence: true
+    consumer:
+      group-id: encounter-service
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      ack-mode: record
+      observation-enabled: true
+    template:
+      observation-enabled: true
+
+server:
+  port: ${PORT:8080}
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      service: encounter-service
+  tracing:
+    sampling:
+      probability: ${TRACE_SAMPLING:1.0}
+    export:
+      enabled: ${TRACING_ENABLED:true}
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
+
+logging:
+  level:
+    root: INFO
+    # Never raise these to DEBUG/TRACE in a shared environment: bind-parameter logging would
+    # print ciphertext today and plaintext the day someone adds an unencrypted column.
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: WARN
+
+chartwise:
+  jwt:
+    # Dev-only default. Deployments must set JWT_SECRET (base64, >= 32 bytes).
+    secret: ${JWT_SECRET:ZGV2LW9ubHktY2hhcnR3aXNlLWp3dC1zZWNyZXQtY2hhbmdlLW1lLTAwMDAwMA==}
+    ttl: ${JWT_TTL:8h}
+  crypto:
+    # Dev-only default. Deployments must set ENCRYPTION_KEY (base64, exactly 32 bytes).
+    key: ${ENCRYPTION_KEY:ZGV2LW9ubHktY2hhcnR3aXNlLWFlcy1rZXktMzJieXQ=}
+  fhir:
+    base-url: ${FHIR_BASE_URL:http://localhost:8090/fhir}
+    connect-timeout: 5s
+    socket-timeout: 20s
+  outbox:
+    batch-size: 100
+    poll-interval: 200ms
+  retention:
+    days: ${RETENTION_DAYS:30}
+    cron: ${RETENTION_CRON:0 30 3 * * *}
+  seed:
+    enabled: ${SEED_USERS:true}
+    password: ${SEED_PASSWORD:chartwise-dev}
+    worker-password: ${WORKER_PASSWORD:chartwise-worker-dev}
+  slo:
+    draft-latency-target: ${DRAFT_SLO:30s}

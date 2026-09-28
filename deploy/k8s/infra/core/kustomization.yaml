@@ -1,0 +1,4 @@
+# Kafka, Redis, HAPI FHIR and tracing running in-cluster (kind, and the low-cost AWS demo).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: [kafka.yaml, redis.yaml, hapi.yaml, tracing.yaml]

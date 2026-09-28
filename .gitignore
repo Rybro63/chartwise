@@ -1,0 +1,29 @@
+# build output
+target/
+dist/
+build/
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+coverage/
+bin/
+
+# local state
+.env
+*.tfstate
+*.tfstate.*
+.terraform/
+tools/synthea/output/
+tools/synthea/*.jar
+chaos/out/
+
+# editors
+.idea/
+.vscode/
+.DS_Store
+deploy/k8s/overlays/aws/rds.env
+deploy/k8s/overlays/aws/secrets.env
+tools/transcripts/out/
+*.egg-info/

@@ -1,0 +1,130 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  encounter-service:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: services/encounter-service } }
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with: { distribution: temurin, java-version: "21", cache: maven }
+      # Integration tests start real PostgreSQL and Kafka with Testcontainers (Docker is on the runner).
+      - run: mvn -B verify
+
+  llm-gateway:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: services/llm-gateway } }
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with: { go-version-file: services/llm-gateway/go.mod, cache-dependency-path: services/llm-gateway/go.sum }
+      - run: go vet ./...
+      - run: go test -race ./...
+
+  note-worker:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: services/note-worker } }
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.13", cache: pip, cache-dependency-path: services/note-worker/pyproject.toml }
+      - run: pip install -e '.[dev]'
+      - name: Proto stubs are up to date
+        run: |
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+          PYTHON=python ../../scripts/gen-proto.sh
+          git diff --exit-code -- ../../services
+      # Includes the Kafka crash test (Testcontainers).
+      - run: pytest -q
+
+  review-app:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: apps/review-app } }
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: "26", cache: npm, cache-dependency-path: apps/review-app/package-lock.json }
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+
+  manifests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Kustomize overlays render
+        run: |
+          cp deploy/k8s/overlays/aws/rds.env.example deploy/k8s/overlays/aws/rds.env
+          kubectl kustomize deploy/k8s/overlays/kind > /dev/null
+          kubectl kustomize deploy/k8s/overlays/aws > /dev/null
+      - uses: hashicorp/setup-terraform@v3
+      - name: Terraform validate
+        working-directory: deploy/terraform/aws
+        run: terraform init -backend=false && terraform validate && terraform fmt -check
+
+  images:
+    needs: [encounter-service, llm-gateway, note-worker, review-app, manifests]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions: { contents: read, packages: write }
+    strategy:
+      matrix:
+        service:
+          - { name: encounter-service, context: services/encounter-service }
+          - { name: llm-gateway, context: services/llm-gateway }
+          - { name: note-worker, context: services/note-worker }
+          - { name: review-app, context: apps/review-app }
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with: { registry: ghcr.io, username: "${{ github.actor }}", password: "${{ secrets.GITHUB_TOKEN }}" }
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.service.context }}
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/chartwise-${{ matrix.service.name }}:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/chartwise-${{ matrix.service.name }}:latest
+          cache-from: type=gha,scope=${{ matrix.service.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service.name }}
+
+  # Deploys the images just pushed to a throwaway kind cluster and runs the end-to-end smoke test.
+  deploy-kind:
+    needs: images
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: helm/kind-action@v1
+        with: { cluster_name: chartwise, config: deploy/k8s/overlays/kind/kind-config.yaml }
+      - name: Pull and load images
+        run: |
+          for s in encounter-service llm-gateway note-worker review-app; do
+            docker pull ghcr.io/${{ github.repository_owner }}/chartwise-$s:${{ github.sha }}
+            docker tag ghcr.io/${{ github.repository_owner }}/chartwise-$s:${{ github.sha }} chartwise-$s:latest
+            kind load docker-image chartwise-$s:latest --name chartwise
+          done
+      - name: Deploy
+        run: SKIP_BUILD=1 deploy/k8s/overlays/kind/kind-up.sh
+      - name: Smoke test
+        run: |
+          kubectl -n chartwise port-forward svc/encounter-service 8080:8080 &
+          kubectl -n chartwise port-forward svc/hapi 8090:8080 &
+          sleep 5
+          python3 scripts/smoke.py --api http://localhost:8080 --fhir http://localhost:8090/fhir
+      - name: Diagnostics
+        if: failure()
+        run: kubectl -n chartwise get pods -o wide && kubectl -n chartwise logs deploy/encounter-service --tail=100

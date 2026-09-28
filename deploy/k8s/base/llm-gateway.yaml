@@ -1,0 +1,50 @@
+# Several replicas share one rate-limit budget (the token bucket lives in Redis). Each replica
+# keeps its own circuit breaker, so an outage trips every replica independently within seconds.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-gateway
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: llm-gateway }
+  template:
+    metadata:
+      labels: { app: llm-gateway }
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8081"
+        prometheus.io/path: /metrics
+    spec:
+      securityContext: { runAsNonRoot: true }
+      containers:
+        - name: llm-gateway
+          image: chartwise/llm-gateway
+          ports:
+            - { name: grpc, containerPort: 50051 }
+            - { name: http, containerPort: 8081 }
+          envFrom:
+            - configMapRef: { name: chartwise-config }
+          env:
+            - name: ANTHROPIC_API_KEY
+              valueFrom: { secretKeyRef: { name: chartwise-secrets, key: ANTHROPIC_API_KEY, optional: true } }
+          readinessProbe:
+            grpc: { port: 50051 }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 64Mi }
+            limits: { memory: 256Mi }
+          securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: llm-gateway
+spec:
+  selector: { app: llm-gateway }
+  ports:
+    - { name: grpc, port: 50051, targetPort: grpc }
+    - { name: http, port: 8081, targetPort: http }

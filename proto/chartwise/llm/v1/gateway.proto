@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package chartwise.llm.v1;
+
+option go_package = "github.com/chartwise/llm-gateway/gen/chartwise/llm/v1;llmv1";
+
+// LlmGateway is the only path from Chartwise services to an LLM provider.
+// It owns rate limiting, retries and circuit breaking so callers don't have to.
+service LlmGateway {
+  rpc Complete(CompleteRequest) returns (CompleteResponse);
+}
+
+message CompleteRequest {
+  // Identifies the caller for rate limiting (one token bucket per client).
+  string client_id = 1;
+  // Correlation ID for logs and metrics. Must not contain patient data.
+  string request_id = 2;
+  string system_prompt = 3;
+  string user_prompt = 4;
+  // Optional JSON Schema. When set, the response text is JSON matching it.
+  string json_schema = 5;
+  int32 max_tokens = 6;
+}
+
+message CompleteResponse {
+  string text = 1;
+  string model = 2;
+  string stop_reason = 3;
+  int64 input_tokens = 4;
+  int64 output_tokens = 5;
+  // Number of provider attempts the gateway made (1 = no retries).
+  int32 attempts = 6;
+}

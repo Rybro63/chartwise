@@ -1,0 +1,22 @@
+# RDS creates only the "chartwise" database; HAPI needs its own.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-init
+spec:
+  backoffLimit: 10
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: create-hapi-db
+          image: postgres:17-alpine
+          env:
+            - { name: PGHOST, value: placeholder }
+            - { name: PGDATABASE, value: chartwise }
+            - { name: PGSSLMODE, value: require }
+            - { name: PGUSER, valueFrom: { secretKeyRef: { name: chartwise-secrets, key: DB_USER } } }
+            - { name: PGPASSWORD, valueFrom: { secretKeyRef: { name: chartwise-secrets, key: DB_PASSWORD } } }
+          command: ["sh", "-c"]
+          args:
+            - psql -tc "select 1 from pg_database where datname = 'hapi'" | grep -q 1 || psql -c "create database hapi"

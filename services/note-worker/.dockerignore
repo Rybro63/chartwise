@@ -1,0 +1,5 @@
+.venv
+tests
+eval
+**/__pycache__
+.pytest_cache
