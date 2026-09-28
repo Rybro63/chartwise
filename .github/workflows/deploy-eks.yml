@@ -17,6 +17,8 @@ jobs:
     environment: aws-demo
     steps:
       - uses: actions/checkout@v5
+      - name: Lowercase owner
+        run: echo "OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
       - uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
@@ -26,7 +28,7 @@ jobs:
       - name: Copy images from GHCR to ECR
         run: |
           for s in encounter-service llm-gateway note-worker review-app; do
-            src=ghcr.io/${{ github.repository_owner }}/chartwise-$s:${{ inputs.image_tag }}
+            src=ghcr.io/${{ env.OWNER }}/chartwise-$s:${{ inputs.image_tag }}
             dst=${{ steps.ecr.outputs.registry }}/chartwise/$s:${{ inputs.image_tag }}
             docker pull "$src" && docker tag "$src" "$dst" && docker push "$dst"
           done
