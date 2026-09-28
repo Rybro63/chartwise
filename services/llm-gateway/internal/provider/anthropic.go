@@ -20,7 +20,7 @@ type Anthropic struct {
 	effort string
 }
 
-func NewAnthropic(apiKey, model, effort string) *Anthropic {
+func NewAnthropic(apiKey, workspaceID, model, effort string) *Anthropic {
 	opts := []option.RequestOption{
 		// The gateway owns retries (with its own backoff, budget and breaker accounting), so the
 		// SDK's built-in retries are off to avoid multiplying attempts.
@@ -28,6 +28,10 @@ func NewAnthropic(apiKey, model, effort string) *Anthropic {
 	}
 	if apiKey != "" {
 		opts = append(opts, option.WithAPIKey(apiKey))
+	}
+	// Keys that aren't scoped to a workspace must name one on every request.
+	if workspaceID != "" {
+		opts = append(opts, option.WithHeader("anthropic-workspace-id", workspaceID))
 	}
 	return &Anthropic{client: anthropic.NewClient(opts...), model: model, effort: effort}
 }

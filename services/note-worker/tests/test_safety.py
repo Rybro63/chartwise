@@ -74,3 +74,12 @@ def test_empty_section_is_flagged_low():
     flags = safety.check(draft, transcript=TRANSCRIPT, record_medications=RECORD, allergies=[])
     assert codes(flags) == [("EMPTY_SECTION", "objective")]
     assert flags[0].severity == "low"
+
+
+def test_mentioning_a_recorded_allergy_is_not_a_hallucination():
+    # Found in a real Claude draft: the note documented the record's allergies without the visit
+    # discussing them. That is accurate documentation, not a fabricated medication.
+    draft = make_draft(subjective="Documented allergies to aspirin and penicillin V were not discussed.",
+                       plan="Continue metformin.", meds=[{"name": "metformin", "status": "continued"}])
+    assert safety.check(draft, transcript="Patient: fine.", record_medications=RECORD,
+                        allergies=["Aspirin", "Penicillin V"]) == []

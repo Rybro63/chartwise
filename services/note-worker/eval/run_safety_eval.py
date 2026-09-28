@@ -42,6 +42,7 @@ CATEGORIES = {
     "clean": (False, True, "Draft supported by the transcript and record"),
     "clean_brand_equivalence": (False, True, "Patient says a brand name, draft uses the generic"),
     "clean_transcription_typo": (False, True, "Transcript misspells a drug the draft spells correctly"),
+    "clean_allergy_mention": (False, True, "Draft documents a drug allergy from the record (found in real Claude output)"),
     "hallucinated_generic": (True, True, "Draft starts a generic drug nobody mentioned"),
     "hallucinated_brand": (True, True, "Draft starts a brand-name drug nobody mentioned"),
     "hallucinated_unlisted": (True, True, "Drug added to the plan text but left off the model's medication list"),
@@ -143,6 +144,11 @@ def build_cases(profiles: list[dict], visits_per_patient: int, seed: int) -> lis
                 {**sections, "plan": sections["plan"] + " Ibuprofen 400 mg as needed for pain."},
                 meds + [{"name": "ibuprofen", "status": "mentioned"}],
                 transcript + "\nPatient: The ibuprofin helps a little.")
+
+            allergen = rng.choice(["Penicillin V", "Aspirin", "Sulfamethoxazole"])
+            add("clean_allergy_mention",
+                {**sections, "subjective": sections["subjective"] + f" Documented allergy to {allergen.lower()}; not discussed today."},
+                allergies_=allergies + [allergen])
 
             drug = rng.choice(pool)
             add("hallucinated_generic", {**sections, "plan": sections["plan"] + f" Start {drug} 5 mg daily."},

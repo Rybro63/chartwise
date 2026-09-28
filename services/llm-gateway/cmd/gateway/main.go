@@ -57,7 +57,7 @@ func run(log *slog.Logger) error {
 		if os.Getenv("ANTHROPIC_API_KEY") == "" {
 			log.Warn("LLM_PROVIDER=anthropic but ANTHROPIC_API_KEY is empty; the SDK will look for other credentials")
 		}
-		base = provider.NewAnthropic(os.Getenv("ANTHROPIC_API_KEY"), env("LLM_MODEL", "claude-opus-5"), os.Getenv("LLM_EFFORT"))
+		base = provider.NewAnthropic(os.Getenv("ANTHROPIC_API_KEY"), os.Getenv("ANTHROPIC_WORKSPACE_ID"), env("LLM_MODEL", "claude-opus-5"), os.Getenv("LLM_EFFORT"))
 	case "fake":
 		base = &provider.Fake{
 			Latency:           duration("FAKE_LATENCY", 800*time.Millisecond),

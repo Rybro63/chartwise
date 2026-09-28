@@ -15,7 +15,7 @@ An AI clinical documentation pipeline. It takes a recorded patient visit (as a t
 - **Events are published only through the transactional outbox** (`OutboxWriter`, `Propagation.MANDATORY`). Outbox payloads carry IDs only; PHI is fetched through the internal API.
 - **The audit log is append-only**, enforced by a Postgres trigger. Retention purges encounters, never audit rows.
 - **AWS bills hourly.** Deploy only to verify and record, then `terraform destroy`. Say exactly what was deployed and for how long.
-- **Report only what was actually run and measured.** Results so far use the gateway's fake LLM provider; say so wherever they are quoted.
+- **Report only what was actually run and measured.** Load, chaos and eval results use the gateway's fake LLM provider, and only `docs/results/live-*.json` used real Claude. Say which wherever a number is quoted.
 
 ## Architecture
 
@@ -33,7 +33,7 @@ review-app ──REST/JWT──▶ encounter-service ──▶ PostgreSQL (Flywa
 - **Note versions are immutable.** v1 is always the AI draft. Edits require `baseVersion` to equal the latest (409 otherwise). Approval names the exact version.
 - **Dead letters** use Spring's header names (`kafka_dlt-original-topic`, `kafka_dlt-exception-fqcn`, `kafka_dlt-exception-message`) from both Java (`DeadLetterPublishingRecoverer`) and Python (`consumer.py`). `EventListeners.onDeadLetter` turns them into visible state.
 - **FHIR filing** is a conditional create on identifier `urn:chartwise:encounter-note|{encounterId}` first, then `markFiled`, so a crash in between is safe.
-- **Worker delivery:** batch consume, draft concurrently, publish, flush, then commit. The worker retries the gateway for up to `GATEWAY_RETRY_BUDGET_SECONDS` (600), so an outage becomes backlog rather than failures.
+- **Worker delivery** (`consumer.py`): up to `CONCURRENCY` drafts in flight. Per partition, commit up to the first unfinished offset after flushing the producer. `pause()` at capacity, `resume()` when a slot frees. Revoke waits for in-flight work and commits it. Never go back to batch-then-commit: with real latency variance it blocks on the slowest call. The worker retries the gateway for up to `GATEWAY_RETRY_BUDGET_SECONDS` (600), so an outage becomes backlog rather than failures.
 - **Gateway order:** rate limit (Redis Lua, uses Redis `TIME`) → circuit breaker (per replica, checked per attempt) → provider call with retries. Returns `RESOURCE_EXHAUSTED` or `UNAVAILABLE` with a `retry-after-ms` trailer. `CHAOS_ENABLED=true` exposes `POST :8081/admin/chaos`.
 - **Worker ↔ LLM prompt contract** is `soap-v1` in `note_worker/prompt.py`. The fake provider (`internal/provider/fake.go`) parses those prompt tags, so change both together.
 - **Tracing:** the outbox stores the request's `traceparent` and the relay sends it as a Kafka header. The worker extracts it, and otelgrpc and Spring Kafka observation carry it on.
@@ -66,6 +66,7 @@ npx vitest run src/lib/diff.test.ts
 
 scripts/gen-proto.sh            # after editing proto/; CI fails if stubs are stale
 make eval | chaos-kill-worker | chaos-llm-outage | load WORKERS=3   # experiments -> docs/results
+LLM_PROVIDER=anthropic docker compose up -d llm-gateway && python3 chaos/live_claude.py --count 20 --offset N --label X   # real Claude, costs money
 make kind-up                    # kind cluster (needs `go install sigs.k8s.io/kind@latest`)
 python3 scripts/smoke.py --api URL --fhir URL                        # end-to-end check anywhere
 ```

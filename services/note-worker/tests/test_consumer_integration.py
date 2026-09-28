@@ -76,9 +76,10 @@ class Encounters:
 
 def _worker(bootstrap: str, encounters: Encounters) -> tuple[DraftConsumer, Consumer]:
     consumer = Consumer(consumer_config(bootstrap, "note-worker-it", 300_000))
-    consumer.subscribe([ENCOUNTER_CREATED])
     pipeline = NotePipeline(encounters, FakeLlm(soap_json()))
-    return DraftConsumer(consumer, Producer(producer_config(bootstrap)), pipeline, batch_size=10, concurrency=4), consumer
+    worker = DraftConsumer(consumer, Producer(producer_config(bootstrap)), pipeline, batch_size=10, concurrency=4)
+    worker.subscribe()
+    return worker, consumer
 
 
 def _drain(bootstrap: str, topic: str, expected_keys: int, timeout: float = 60) -> list:
@@ -108,13 +109,15 @@ def test_crash_mid_batch_loses_nothing_and_poison_goes_to_dead_letter(bootstrap)
         deadline = time.time() + 60
         while time.time() < deadline:
             worker1.run_once()
-    consumer1.close()  # auto-commit is off: closing does not commit the in-flight batch
+    # The process is dead: its in-memory bookkeeping is gone and no rebalance callback gets to run.
+    worker1._pending.clear()
+    consumer1.close()  # auto-commit is off: closing does not commit the in-flight messages
 
     # Worker 2 takes over the same consumer group and finishes the job.
     worker2, consumer2 = _worker(bootstrap, Encounters())
     idle, deadline = 0, time.time() + 60
-    while idle < 5 and time.time() < deadline:
-        idle = idle + 1 if worker2.run_once() == 0 else 0
+    while idle < 10 and time.time() < deadline:
+        idle = idle + 1 if worker2.run_once() == 0 and worker2.in_flight == 0 else 0
     consumer2.close()
 
     drafted = _drain(bootstrap, NOTE_DRAFTED, expected_keys=30)

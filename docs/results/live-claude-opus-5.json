@@ -1,0 +1,302 @@
+{
+  "summary": {
+    "label": "claude-opus-5",
+    "encounters": 20,
+    "drafted": 20,
+    "failed": 0,
+    "models": [
+      "claude-opus-5"
+    ],
+    "draft_seconds_p50": 18.7,
+    "draft_seconds_p95": 30.3,
+    "draft_seconds_max": 32.7,
+    "within_30s": 0.9,
+    "drafts_flagged": 0,
+    "flags": [],
+    "input_tokens": 29327,
+    "output_tokens": 14924,
+    "estimated_cost_usd": 0.52
+  },
+  "drafts": [
+    {
+      "encounter_id": "421eb31e-9062-4d3b-a392-caa7a5508794",
+      "status": "IN_REVIEW",
+      "draft_seconds": 8.005179,
+      "model": "claude-opus-5",
+      "flags": [],
+      "note": {
+        "subjective": "53-year-old female presenting for routine diabetes/prediabetes follow-up. Reports increased thirst over recent weeks. States she continues to take her vitamin (B12) and simvastatin, but missed a couple of doses of each last week. No other symptoms or concerns reported during the visit.",
+        "objective": "Vitals: BP 148/74 mmHg, HR 83 bpm, temperature 98.6\u00b0F. Respiratory rate, weight and oxygen saturation not documented.\nExam: Lungs clear to auscultation. Heart sounds normal.\nNo laboratory or point-of-care test results were discussed during this visit.",
+        "assessment": "1. Prediabetes \u2014 presenting for routine monitoring with new report of increased thirst; glycemic status not assessed during this visit.\n2. Hyperlipidemia \u2014 on simvastatin, with reported missed doses last week.\n3. Anemia \u2014 on vitamin B12 injectable therapy, with reported missed doses last week.\n4. Elevated blood pressure reading (148/74) noted today; no hypertension diagnosis discussed during the visit.",
+        "plan": "- Continue vitamin B12 injectable at the same dose.\n- Simvastatin 10 mg oral tablet: no change discussed; patient reports ongoing use.\n- No laboratory testing, referrals or additional treatment changes were discussed during the visit.\n- Follow up in 4 weeks, or sooner if symptoms worsen."
+      },
+      "transcript": "Doctor: Hi, good to see you. What brings you in today?\nPatient: I'm here for my diabetes check.\nDoctor: Tell me more about that.\nPatient: I've been more thirsty than usual lately.\nDoctor: Are you still taking the vitamin?\nPatient: Yes, though I missed a couple of doses last week.\nDoctor: Are you still taking the simvastatin?\nPatient: Yes, though I missed a couple of doses last week.\nDoctor: Your blood pressure today is 148 over 74, heart rate 83, temperature 98.6.\nDoctor: Your lungs sound clear and your heart sounds normal.\nDoctor: Let's continue the vitamin at the same dose.\nDoctor: Let's follow up in four weeks, sooner if things get worse.\nPatient: Sounds good, thank you."
+    },
+    {
+      "encounter_id": "93b5a2a2-55d1-47ee-9fcb-bd34e3f357f4",
+      "status": "IN_REVIEW",
+      "draft_seconds": 10.797651,
+      "model": "claude-opus-5",
+      "flags": [],
+      "note": {
+        "subjective": "46-year-old male presents primarily to discuss weight. He reports approximately a 10-pound weight gain over the past year. He continues diphenhydramine but missed a couple of doses last week. He takes naproxen most days, occasionally forgetting the evening dose. He reports additionally taking over-the-counter loratadine. He confirms an ongoing egg allergy. No other symptoms or complaints were reported during the visit.",
+        "objective": "Vitals: BP 127/93, HR 72, temperature 98.2 F. Physical exam: clinician stated the exam was \"reassuring overall\"; no specific exam findings were documented. No laboratory or imaging results were discussed at this visit.",
+        "assessment": "1. Weight gain / obesity (BMI 30+): Reports approximately 10 lb weight gain over the past year; contributing factors and weight management strategies not detailed during this visit.\n2. Osteoarthritis of hip: Managed with naproxen, taken most days with occasional missed evening doses. Symptom control not specifically discussed.\n3. Allergic disposition: On diphenhydramine with occasional missed doses; patient has additionally been self-treating with over-the-counter loratadine. Egg allergy confirmed as ongoing.\n4. Blood pressure 127/93 today with elevated diastolic reading; not commented on by the clinician during the visit.",
+        "plan": "1. Continue diphenhydramine 25 mg oral tablet at the same dose.\n2. Continue naproxen sodium 220 mg oral tablet (no change discussed); encourage consistent dosing as patient reports occasionally missing evening doses.\n3. Over-the-counter loratadine noted in use; no change directed during the visit.\n4. Weight concern raised by patient; no specific weight management interventions, dietary counseling, labs or referrals were discussed at this visit.\n5. Elevated diastolic blood pressure noted on today's reading; no follow-up plan was documented.\n6. Return visit in 6 months."
+      },
+      "transcript": "Doctor: Hi, good to see you. What brings you in today?\nPatient: I want to talk about my weight.\nDoctor: Tell me more about that.\nPatient: I've gained about ten pounds this year.\nDoctor: Are you still taking the diphenhydramine?\nPatient: Yes, though I missed a couple of doses last week.\nDoctor: Are you still taking the naproxen?\nPatient: Most days. Sometimes I forget in the evening.\nPatient: I've also been taking some loratadine from the pharmacy.\nDoctor: And you're still allergic to eggs, correct?\nPatient: That's right.\nDoctor: Your blood pressure today is 127 over 93, heart rate 72, temperature 98.2.\nDoctor: Exam looks reassuring overall.\nDoctor: Let's continue the diphenhydramine at the same dose.\nDoctor: I'll see you back in six months.\nPatient: Sounds good, thank you."
+    },
+    {
+      "encounter_id": "4881e16c-ae81-4dda-bab9-f367f19c821a",
+      "status": "IN_REVIEW",
+      "draft_seconds": 11.348801,
+      "model": "claude-opus-5",
+      "flags": [],
+      "note": {
+        "subjective": "78-year-old male presents to discuss weight. He reports an approximately 10-pound weight gain over the past year. He reports continued use of hydrochlorothiazide but missed a couple of doses last week. He takes clopidogrel most days, occasionally forgetting the evening dose. He also reports taking over-the-counter acetaminophen. He described an area of discomfort that he pointed to on exam; no further characterization of this symptom (onset, duration, severity, associated symptoms) was elicited during the visit. No other complaints were reported.",
+        "objective": "Vitals: BP 145/81, HR 66, temperature 99.1. Respiratory rate, oxygen saturation, weight and BMI not documented this visit.\nExam: Lungs clear to auscultation. Mild tenderness at the site indicated by the patient (location not specified in the encounter). No other exam findings documented.\nNo laboratory or imaging results were reviewed or reported during the visit.",
+        "assessment": "1. Weight gain/obesity \u2014 reports 10-lb gain over the past year; contributing factors not explored during this visit.\n2. Essential hypertension \u2014 BP 145/81 today, above goal; patient reports missing a couple of hydrochlorothiazide doses last week. Clinician elected to continue current dose.\n3. Medication adherence \u2014 intermittent missed doses of hydrochlorothiazide and clopidogrel (evening doses).\n4. Mild abdominal/focal tenderness on exam at site indicated by patient; significance not addressed in the discussion.\n5. Temperature 99.1\u00b0F noted; no associated symptoms discussed.",
+        "plan": "1. Continue hydrochlorothiazide 25 mg daily at the same dose.\n2. Continue clopidogrel 75 mg daily; adherence discussed \u2014 patient reports occasionally forgetting the evening dose.\n3. Over-the-counter acetaminophen use noted; no change directed during the visit.\n4. Weight concern raised by patient; no specific dietary, exercise, or referral plan was documented during this encounter.\n5. No laboratory testing, imaging, or referrals were ordered at this visit.\n6. Follow-up in 6 months."
+      },
+      "transcript": "Doctor: Hi, good to see you. What brings you in today?\nPatient: I want to talk about my weight.\nDoctor: Tell me more about that.\nPatient: I've gained about ten pounds this year.\nDoctor: Are you still taking the hydrochlorothiazide?\nPatient: Yes, though I missed a couple of doses last week.\nDoctor: Are you still taking the clopidogrel?\nPatient: Most days. Sometimes I forget in the evening.\nPatient: I've also been taking some acetaminophen from the pharmacy.\nDoctor: Your blood pressure today is 145 over 81, heart rate 66, temperature 99.1.\nDoctor: Lungs are clear. There's some mild tenderness where you pointed.\nDoctor: Let's continue the hydrochlorothiazide at the same dose.\nDoctor: I'll see you back in six months.\nPatient: Sounds good, thank you."
+    },
+    {
+      "encounter_id": "36491c3c-d466-4335-8cbb-19ac2c1fd671",
+      "status": "IN_REVIEW",
+      "draft_seconds": 8.259122,
+      "model": "claude-opus-5",
+      "flags": [],
+      "note": {
+        "subjective": "45-year-old female presents to discuss her weight. She reports gaining approximately 10 pounds over the past year. No associated symptoms, dietary history, activity level, or prior weight-management efforts were discussed. No other complaints were raised during the visit.",
+        "objective": "Vitals: BP 144/87 mmHg, HR 65 bpm, temperature 99.1 F. Weight, height and BMI not documented at this visit.\nPhysical exam: Clinician noted the exam was \"reassuring overall\"; no specific system findings were described.\nNo laboratory or imaging results were reviewed during the visit.",
+        "assessment": "1. Weight gain / obesity (BMI 30+) - patient reports approximately 10 lb weight gain over the past year; addressed as today's primary concern. No specific etiology discussed during the visit.\n2. Elevated blood pressure - single reading of 144/87 today; no prior readings or diagnosis of hypertension discussed.\n3. History of chronic sinusitis and documented drug misuse are noted in the record but were not addressed at this visit.",
+        "plan": "- Repeat laboratory testing in approximately 3 months; specific labs were not specified during the visit.\n- No medications were started, changed or stopped at this visit.\n- Elevated blood pressure reading today was not specifically discussed with the patient; recommend confirming with repeat measurement at or before the next visit.\n- Follow-up: in approximately 3 months with lab recheck. Weight management counseling and specific dietary/activity recommendations were not documented at this visit."
+      },
+      "transcript": "Doctor: Hi, good to see you. What brings you in today?\nPatient: I want to talk about my weight.\nDoctor: Tell me more about that.\nPatient: I've gained about ten pounds this year.\nDoctor: Your blood pressure today is 144 over 87, heart rate 65, temperature 99.1.\nDoctor: Exam looks reassuring overall.\nDoctor: I'd like to recheck some labs in three months.\nPatient: Sounds good, thank you."
+    },
+    {
+      "encounter_id": "b0d0b820-5879-4d7e-bae5-a42f9d968e5e",
+      "status": "IN_REVIEW",
+      "draft_seconds": 8.537151,
+      "model": "claude-opus-5",
+      "flags": [],
+      "note": {
+        "subjective": "78-year-old male presenting for scheduled diabetes follow-up. Reports increased thirst over recent weeks. Endorses partial adherence to medications: takes amlodipine most days but sometimes forgets the evening dose; takes metoprolol but missed a couple of doses last week. No other symptoms, complaints, or review of systems discussed during the visit.",
+        "objective": "Vitals: BP 137/86, HR 79, temperature 99.1 F. Lungs clear to auscultation. Heart sounds normal. No other exam findings, laboratory results, weight, or point-of-care glucose documented during this visit.",
+        "assessment": "Diabetes-related follow-up visit with new complaint of increased thirst; polydipsia may reflect suboptimal glycemic control and warrants laboratory evaluation. Hypertension remains slightly above goal at 137/86, likely compounded by intermittent missed doses of amlodipine and metoprolol. Temperature of 99.1 F noted; no associated symptoms discussed. Cardiopulmonary exam unremarkable.",
+        "plan": "1. Continue amlodipine 2.5 mg at the same dose.\n2. Metoprolol succinate 100 mg ER continued; no change discussed.\n3. Recheck laboratory studies in 3 months (specific tests not specified during the visit).\n4. Adherence: patient reports occasional missed evening amlodipine doses and missed a couple of metoprolol doses last week; reinforce consistent daily dosing.\n5. Follow-up timing beyond the 3-month lab recheck was not documented."
+      },
+      "transcript": "Doctor: Hi, good to see you. What brings you in today?\nPatient: I'm here for my diabetes check.\nDoctor: Tell me more about that.\nPatient: I've been more thirsty than usual lately.\nDoctor: Are you still taking the amlodipine?\nPatient: Most days. Sometimes I forget in the evening.\nDoctor: Are you still taking the metoprolol?\nPatient: Yes, though I missed a couple of doses last week.\nDoctor: Your blood pressure today is 137 over 86, heart rate 79, temperature 99.1.\nDoctor: Your lungs sound clear and your heart sounds normal.\nDoctor: Let's continue the amlodipine at the same dose.\nDoctor: I'd like to recheck some labs in three months.\nPatient: Sounds good, thank you."
+    },
+    {
+      "encounter_id": "f034e6cd-b4c7-4e2d-95eb-43b5967a6b73",
+      "status": "IN_REVIEW",
+      "draft_seconds": 8.685045,
+      "model": "claude-opus-5",
+      "flags": [],
+      "note": {
+        "subjective": "51-year-old male presenting for routine follow-up of prediabetes. Reports increased thirst compared to his baseline over the recent period. No other symptoms, duration, or associated complaints were described. Notes he has been taking over-the-counter cetirizine obtained from the pharmacy; dose, frequency, and indication were not discussed.",
+        "objective": "Vitals: blood pressure 155/84 mmHg, heart rate 85 bpm, temperature 98.6\u00b0F. Physical exam described by the clinician as reassuring overall; no specific system findings were detailed. No laboratory or point-of-care results were reviewed during the visit.",
+        "assessment": "1. Prediabetes with new report of increased thirst \u2014 symptom may reflect worsening glycemic control; requires laboratory evaluation. 2. Elevated blood pressure (155/84) on today's single office reading \u2014 not previously documented as a diagnosis; warrants confirmation. 3. Chronic sinusitis \u2014 patient self-treating with over-the-counter cetirizine. 4. Obesity (BMI 30+) and anemia noted in the record; not specifically addressed at today's visit.",
+        "plan": "- Recheck laboratory studies in 3 months; specific tests were not named during the visit.\n- Cetirizine: over-the-counter use reported by patient; no dose discussed and no change directed.\n- Elevated blood pressure noted today; no antihypertensive therapy, repeat measurement, or home monitoring was discussed during the visit.\n- Follow-up in approximately 3 months with lab recheck.\n- Patient voiced understanding and agreement with the plan. No additional counseling or referrals documented."
+      },
+      "transcript": "Doctor: Hi, good to see you. What brings you in today?\nPatient: I'm here for my diabetes check.\nDoctor: Tell me more about that.\nPatient: I've been more thirsty than usual lately.\nPatient: I've also been taking some cetirizine from the pharmacy.\nDoctor: Your blood pressure today is 155 over 84, heart rate 85, temperature 98.6.\nDoctor: Exam looks reassuring overall.\nDoctor: I'd like to recheck some labs in three months.\nPatient: Sounds good, thank you."
+    },
+    {
+      "encounter_id": "4801c3b4-7e16-4918-a8cc-d41a1a093f43",
+      "status": "IN_REVIEW",
+      "draft_seconds": 8.387183,
+      "model": "claude-opus-5",
+      "flags": [],
+      "note": {
+        "subjective": "34-year-old female presents for scheduled follow-up of prediabetes. Reports increased thirst compared with her baseline over recent weeks. Does not report polyuria, weight change, or other symptoms; these were not discussed. States she is taking ferrous sulfate daily as prescribed for anemia without reported difficulty. No other complaints raised during the visit.",
+        "objective": "Vitals: BP 114/79 mmHg, HR 74 bpm, temperature 98.2 F. Respiratory rate, weight, and oxygen saturation not documented.\nRespiratory: lungs clear to auscultation.\nCardiovascular: heart sounds normal.\nNo other exam findings documented. No laboratory or point-of-care results reported during the visit.",
+        "assessment": "Prediabetes: patient reports increased thirst, which warrants objective reassessment; no glucose or A1c results available at today's visit. No changes made pending labs.\n\nAnemia: stable on ferrous sulfate with reported full adherence; continued at current dose with lab recheck planned.",
+        "plan": "- Continue ferrous sulfate 325 mg orally, same dose, no change.\n- Recheck laboratory studies in 3 months (specific tests not specified during the visit).\n- Follow-up timing tied to lab recheck in approximately 3 months; no additional instructions, referrals, or medication changes discussed."
+      },
+      "transcript": "Doctor: Hi, good to see you. What brings you in today?\nPatient: I'm here for my diabetes check.\nDoctor: Tell me more about that.\nPatient: I've been more thirsty than usual lately.\nDoctor: Are you still taking the ferrous?\nPatient: Yes, every day.\nDoctor: Your blood pressure today is 114 over 79, heart rate 74, temperature 98.2.\nDoctor: Your lungs sound clear and your heart sounds normal.\nDoctor: Let's continue the ferrous at the same dose.\nDoctor: I'd like to recheck some labs in three months.\nPatient: Sounds good, thank you."
+    },
+    {
+      "encounter_id": "2ec7ae2f-67e9-467c-8c29-f8e55422099d",
+      "status": "IN_REVIEW",
+      "draft_seconds": 15.478296,
+      "model": "claude-opus-5",
+      "flags": [],
+      "note": {
+        "subjective": "70-year-old female presents with recurrence of her headaches. She reports the headaches are associated with photophobia and nausea. Onset, frequency, duration, severity and specific triggers were not discussed. She reports taking lisinopril daily as prescribed and hydrochlorothiazide most days, with occasional missed evening doses. She also reports self-medicating with over-the-counter ibuprofen; dose and frequency were not specified. No other complaints, review of systems or red-flag neurologic symptoms were elicited during the visit. History is notable for chronic intractable migraine without aura, essential hypertension, chronic pain, and type 2 diabetes mellitus.",
+        "objective": "Vitals: BP 112/90, HR 65, temperature 98.6\\u00b0F. Respiratory rate, oxygen saturation, weight and BMI not documented this visit.\nExam: Lungs clear to auscultation. Mild tenderness at the site indicated by the patient (location not specified in the transcript). No other exam findings documented.\nNo laboratory or imaging results were discussed or reported during this visit.",
+        "assessment": "1. Recurrent headaches with photophobia and nausea, consistent with recurrence of her known chronic intractable migraine without aura. No new neurologic complaints reported during the visit; no abortive or preventive migraine therapy was discussed in the transcript.\n2. Essential hypertension \u2014 BP 112/90 today with elevated diastolic reading. Patient reports intermittent missed evening doses of hydrochlorothiazide; adherence is a contributing factor.\n3. Self-directed OTC ibuprofen use \u2014 noted by patient; relevant given hypertension, concurrent lisinopril/hydrochlorothiazide therapy, and risk of medication-overuse headache. Not explicitly addressed by the clinician during the visit.\n4. Mild focal tenderness of uncertain significance; the site the patient indicated was not specified in the encounter record.",
+        "plan": "1. Hypertension: Continue lisinopril 10 mg orally daily at the same dose. Hydrochlorothiazide 25 mg daily remains on the active medication list; adherence counseling and any dose change were not documented this visit \\u2014 clinician to address missed evening doses at or before follow-up.\n2. Headache: No new medication started or changed for migraine during this visit. Consider review of abortive/preventive therapy and assessment for medication-overuse headache given reported OTC ibuprofen use; counseling regarding NSAID use with hypertension and ACE inhibitor/diuretic therapy was not documented.\n3. Follow-up in 4 weeks, sooner if symptoms worsen. Patient verbalized agreement with the plan.\n4. No tests, imaging or referrals were ordered during this encounter."
+      },
+      "transcript": "Doctor: Hi, good to see you. What brings you in today?\nPatient: My headaches are back.\nDoctor: Tell me more about that.\nPatient: They come with light sensitivity and nausea.\nDoctor: Are you still taking the lisinopril?\nPatient: Yes, every day.\nDoctor: Are you still taking the hydrochlorothiazide?\nPatient: Most days. Sometimes I forget in the evening.\nPatient: I've also been taking some ibuprofen from the pharmacy.\nDoctor: Your blood pressure today is 112 over 90, heart rate 65, temperature 98.6.\nDoctor: Lungs are clear. There's some mild tenderness where you pointed.\nDoctor: Let's continue the lisinopril at the same dose.\nDoctor: Let's follow up in four weeks, sooner if things get worse.\nPatient: Sounds good, thank you."
+    },
+    {
+      "encounter_id": "117da6f0-884d-4ce3-ac8f-b0a837fcfb3d",
+      "status": "IN_REVIEW",
+      "draft_seconds": 25.577243,
+      "model": "claude-opus-5",
+      "flags": [],
+      "note": {
+        "subjective": "59-year-old female presents for follow-up of hypertension. She reports a few headaches occurring in the mornings; no additional detail regarding severity, duration, associated symptoms or aggravating/relieving factors was provided. She reports taking hydrocortisone most days but sometimes forgets the evening dose. She also reports self-initiating over-the-counter loratadine. No other complaints were raised during the visit.",
+        "objective": "Vital signs: blood pressure 125/82 mmHg, heart rate 64 bpm, temperature 99.1\u00b0F.\nLungs: clear to auscultation.\nCardiovascular: normal heart sounds.\nNo other examination findings, and no laboratory or imaging results, were documented during this visit.",
+        "assessment": "1. Essential hypertension \u2014 follow-up visit; blood pressure today 125/82 with heart rate 64, which is at goal range. Patient reports intermittent morning headaches; no further characterization or workup discussed during the visit, and no causal relationship established.\n2. Intermittent adherence to hydrocortisone topical cream (missed evening doses); clinician elected to continue the same dose.\n3. Patient-initiated over-the-counter loratadine use noted; indication not discussed.\n4. Other chronic problems on the record (type 2 diabetes mellitus with neuropathy and nonproliferative retinopathy, hyperglycemia, prediabetes, obesity, hypertriglyceridemia, metabolic syndrome, anemia) were not addressed at this visit.",
+        "plan": "1. Continue hydrocortisone 10 MG/ML topical cream at the same dose. Adherence discussed; patient reports occasionally missing evening application.\n2. Recheck laboratory studies in 3 months; specific tests were not specified in the visit.\n3. Over-the-counter loratadine use noted by the patient; no change directed during the visit.\n4. No change was discussed to amlodipine 2.5 mg, which remains on the active medication list; regimen was not specifically reviewed during this encounter.\n5. Follow-up interval beyond the 3-month lab recheck was not documented. No referrals or additional testing were ordered. Evaluation of morning headaches was not further addressed."
+      },
+      "transcript": "Doctor: Hi, good to see you. What brings you in today?\nPatient: I'm here to follow up on my blood pressure.\nDoctor: Tell me more about that.\nPatient: I've had a few headaches in the mornings.\nDoctor: Are you still taking the hydrocortisone?\nPatient: Most days. Sometimes I forget in the evening.\nPatient: I've also been taking some loratadine from the pharmacy.\nDoctor: Your blood pressure today is 125 over 82, heart rate 64, temperature 99.1.\nDoctor: Your lungs sound clear and your heart sounds normal.\nDoctor: Let's continue the hydrocortisone at the same dose.\nDoctor: I'd like to recheck some labs in three months.\nPatient: Sounds good, thank you."
+    },
+    {
+      "encounter_id": "be0c16a5-dc85-4a79-b89f-0fe3e44c54c9",
+      "status": "IN_REVIEW",
+      "draft_seconds": 28.715775,
+      "model": "claude-opus-5",
+      "flags": [],
+      "note": {
+        "subjective": "78-year-old male presenting for follow-up of hypertension. Reports a few headaches occurring in the mornings. States he continues nitroglycerin but missed a couple of doses last week. Reports taking insulin most days, with occasional missed evening doses. No chest pain, dyspnea, or other symptoms reported or elicited during the visit.",
+        "objective": "Vital signs: blood pressure 138/77 mmHg, heart rate 85 bpm, temperature 99.1 F. Physical exam: clinician described the exam as reassuring overall; no specific system findings were documented. No laboratory or imaging results were discussed at this visit.",
+        "assessment": "Essential hypertension: blood pressure 138/77 today, slightly above goal, with morning headaches reported. Reported intermittent missed doses of nitroglycerin and evening insulin; medication adherence appears to be a contributing factor. Ischemic heart disease: no chest pain or anginal symptoms reported during this visit; nitroglycerin continued as needed. Diabetes managed with insulin, with reported missed evening doses; glucose values not discussed at this visit.",
+        "plan": "1. Hypertension: continue current management; blood pressure 138/77 noted today. No medication changes made at this visit.\n2. Nitroglycerin 0.4 mg/actuation mucosal spray: continue at the same dose.\n3. Insulin (Humulin 70/30): patient reports missed evening doses; adherence discussed. No dose change documented.\n4. Follow-up: return visit in six months.\nNo laboratory testing, imaging or referrals were ordered or discussed at this visit."
+      },
+      "transcript": "Doctor: Hi, good to see you. What brings you in today?\nPatient: I'm here to follow up on my blood pressure.\nDoctor: Tell me more about that.\nPatient: I've had a few headaches in the mornings.\nDoctor: Are you still taking the nitroglycerin?\nPatient: Yes, though I missed a couple of doses last week.\nDoctor: Are you still taking the insulin?\nPatient: Most days. Sometimes I forget in the evening.\nDoctor: Your blood pressure today is 138 over 77, heart rate 85, temperature 99.1.\nDoctor: Exam looks reassuring overall.\nDoctor: Let's continue the nitroglycerin at the same dose.\nDoctor: I'll see you back in six months.\nPatient: Sounds good, thank you."
+    },
+    {
+      "encounter_id": "1fe54975-a100-4d9a-a7e3-10a07067d5fd",
+      "status": "IN_REVIEW",
+      "draft_seconds": 17.488429,
+      "model": "claude-opus-5",
+      "flags": [],
+      "note": {
+        "subjective": "80-year-old male presents with a two-week history of cough. The cough is worse at night and productive of mucus. No fever, dyspnea, chest pain or other associated symptoms were reported or discussed. He reports taking verapamil most days but occasionally forgets the evening dose. No other complaints raised during the visit.",
+        "objective": "Vital signs: BP 114/82 mmHg, HR 62 bpm, temperature 98.6 F. Respiratory rate, oxygen saturation and weight not documented.\nExam: Lungs clear to auscultation. Heart sounds normal.\nNo laboratory or imaging results were discussed at this visit.",
+        "assessment": "1. Two-week productive cough, worse at night, in a patient with chronic obstructive bronchitis and chronic sinusitis. Exam is reassuring today with clear lungs, no fever, and no findings to suggest acute consolidation; etiology not specifically determined during this visit.\n2. Cardiovascular disease with atrial fibrillation and ischemic heart disease \u2014 rate and blood pressure controlled on current regimen. Partial adherence to verapamil noted (occasional missed evening doses).",
+        "plan": "1. Continue verapamil 80 mg orally at the same dose; adherence discussed, patient advised regarding occasionally missed evening doses.\n2. Recheck labs in approximately 3 months; specific tests not specified during the visit.\n3. Cough: no new medication started today; no further evaluation or specific return precautions documented.\n4. Follow-up: with lab recheck in 3 months; no other interval follow-up specified."
+      },
+      "transcript": "Doctor: Hi, good to see you. What brings you in today?\nPatient: I've had a cough for two weeks.\nDoctor: Tell me more about that.\nPatient: It's worse at night and I bring up some mucus.\nDoctor: Are you still taking the verapamil?\nPatient: Most days. Sometimes I forget in the evening.\nDoctor: Your blood pressure today is 114 over 82, heart rate 62, temperature 98.6.\nDoctor: Your lungs sound clear and your heart sounds normal.\nDoctor: Let's continue the verapamil at the same dose.\nDoctor: I'd like to recheck some labs in three months.\nPatient: Sounds good, thank you."
+    },
+    {
+      "encounter_id": "68385214-b570-42e6-b7f5-ad5f8d6ae2da",
+      "status": "IN_REVIEW",
+      "draft_seconds": 20.493824,
+      "model": "claude-opus-5",
+      "flags": [],
+      "note": {
+        "subjective": "56-year-old male presents reporting persistent fatigue, described as feeling tired all the time. He also reports becoming winded when walking up stairs. Duration, severity, associated symptoms (chest pain, palpitations, cough, bleeding, weight change), and prior workup were not discussed. No other complaints were raised during the visit.",
+        "objective": "Vitals: BP 133/86, HR 68, temperature 98.6\u00b0F. Respiratory rate, oxygen saturation, weight and BMI not documented.\n\nExam: Lungs clear to auscultation. Heart sounds normal. No other exam findings documented.\n\nNo laboratory or imaging results were discussed during the visit.",
+        "assessment": "Fatigue with exertional dyspnea in a 56-year-old male. No diagnosis was stated by the clinician during the visit. Cardiopulmonary exam was unremarkable and vital signs were stable, with blood pressure mildly elevated at 133/86. The patient's history of anemia is a possible contributor to the reported fatigue and dyspnea on exertion, though this was not discussed during the encounter and no evaluation was documented. History of prediabetes and chronic sinusitis was not addressed at this visit.",
+        "plan": "- Follow-up visit in six months.\n- No medications were prescribed, changed or discussed.\n- No laboratory testing, imaging or referrals were ordered or discussed during this encounter. Given the reported fatigue and exertional dyspnea with a history of anemia, further evaluation (e.g., CBC) may warrant consideration at clinician review.\n- No patient education or return precautions were documented."
+      },
+      "transcript": "Doctor: Hi, good to see you. What brings you in today?\nPatient: I've been feeling tired all the time.\nDoctor: Tell me more about that.\nPatient: I get winded walking up stairs.\nDoctor: Your blood pressure today is 133 over 86, heart rate 68, temperature 98.6.\nDoctor: Your lungs sound clear and your heart sounds normal.\nDoctor: I'll see you back in six months.\nPatient: Sounds good, thank you."
+    },
+    {
+      "encounter_id": "4ff7c74a-e524-47e6-8457-7130450e1b23",
+      "status": "IN_REVIEW",
+      "draft_seconds": 25.693847,
+      "model": "claude-opus-5",
+      "flags": [],
+      "note": {
+        "subjective": "80-year-old male presents for follow-up after recent labs showed borderline blood sugar. He reports he has been trying to cut back on sweets. He states he takes his clopidogrel and atenolol most days but sometimes forgets the evening dose. He reports an area of discomfort that he pointed to on exam. No other symptoms, review of systems or additional history was discussed during the visit.",
+        "objective": "Vitals: BP 114/79 mmHg, HR 84 bpm, temperature 98.6\u00b0F. Respiratory rate, oxygen saturation and weight not documented.\nExam: Lungs clear to auscultation. Mild tenderness at the site indicated by the patient; specific location not stated in the encounter. No other exam findings documented.\nNo laboratory or imaging results were reviewed or reported during this visit.",
+        "assessment": "1. Prediabetes \u2014 patient presenting for follow-up of borderline glucose on prior labs; making dietary changes (reducing sweets). No new labs reviewed this visit.\n2. Ischemic heart disease/prior myocardial infarction on antiplatelet therapy \u2014 clopidogrel continued at same dose; adherence is intermittent with occasional missed evening doses.\n3. Intermittent medication adherence involving clopidogrel and atenolol.\n4. Mild focal tenderness on exam at the site the patient indicated; location and associated symptoms not further characterized in this visit.",
+        "plan": "1. Continue clopidogrel 75 mg at the same dose.\n2. Atenolol adherence discussed; no dose change stated.\n3. Prediabetes: patient encouraged to continue dietary modification (reducing sweets). No specific labs ordered during this visit.\n4. Follow up in 4 weeks, sooner if symptoms worsen."
+      },
+      "transcript": "Doctor: Hi, good to see you. What brings you in today?\nPatient: My last labs said my sugar was borderline.\nDoctor: Tell me more about that.\nPatient: I've been trying to cut back on sweets.\nDoctor: Are you still taking the clopidogrel?\nPatient: Most days. Sometimes I forget in the evening.\nDoctor: Are you still taking the atenolol?\nPatient: Most days. Sometimes I forget in the evening.\nDoctor: Your blood pressure today is 114 over 79, heart rate 84, temperature 98.6.\nDoctor: Lungs are clear. There's some mild tenderness where you pointed.\nDoctor: Let's continue the clopidogrel at the same dose.\nDoctor: Let's follow up in four weeks, sooner if things get worse.\nPatient: Sounds good, thank you."
+    },
+    {
+      "encounter_id": "c88bd312-a639-4dd3-904f-3c49d028e2ae",
+      "status": "IN_REVIEW",
+      "draft_seconds": 29.613855,
+      "model": "claude-opus-5",
+      "flags": [],
+      "note": {
+        "subjective": "51-year-old female presents to discuss her weight. She reports gaining approximately 10 pounds over the past year. She states she is taking simvastatin daily and ferrous sulfate daily as prescribed. She also reports taking over-the-counter acetaminophen obtained from the pharmacy; dose, frequency, and indication were not discussed. No other symptoms or concerns were reported during the visit.",
+        "objective": "Vitals: blood pressure 154/77 mmHg, heart rate 60 bpm, temperature 98.6 F. Physical exam described by the clinician as reassuring overall; no specific system findings were documented. No laboratory or imaging results were reviewed during the visit.",
+        "assessment": "Obesity with reported 10-pound weight gain over the past year; weight management is the patient's primary concern today. Hyperlipidemia, stable on current therapy per report of daily adherence. Elevated blood pressure reading of 154/77 at this visit; not specifically addressed or diagnosed during the encounter. Anemia, on iron supplementation with reported daily adherence. History of prediabetes is in the record and is relevant to the planned lab recheck, though not discussed during the visit.",
+        "plan": "1. Continue simvastatin 10 mg orally daily at the same dose. 2. Continue ferrous sulfate 325 mg orally daily. 3. Recheck laboratory studies in 3 months; specific tests were not specified during the visit. 4. Weight concern raised by patient; no specific weight management intervention, dietary counseling, or referral was documented this visit. 5. Elevated blood pressure reading noted; no follow-up plan for blood pressure was discussed. 6. Follow-up timing beyond the 3-month lab recheck was not documented."
+      },
+      "transcript": "Doctor: Hi, good to see you. What brings you in today?\nPatient: I want to talk about my weight.\nDoctor: Tell me more about that.\nPatient: I've gained about ten pounds this year.\nDoctor: Are you still taking the simvastatin?\nPatient: Yes, every day.\nDoctor: Are you still taking the ferrous?\nPatient: Yes, every day.\nPatient: I've also been taking some acetaminophen from the pharmacy.\nDoctor: Your blood pressure today is 154 over 77, heart rate 60, temperature 98.6.\nDoctor: Exam looks reassuring overall.\nDoctor: Let's continue the simvastatin at the same dose.\nDoctor: I'd like to recheck some labs in three months.\nPatient: Sounds good, thank you."
+    },
+    {
+      "encounter_id": "83648740-e35a-47a1-b946-5cfd37b0f45d",
+      "status": "IN_REVIEW",
+      "draft_seconds": 19.614876,
+      "model": "claude-opus-5",
+      "flags": [],
+      "note": {
+        "subjective": "53-year-old female presenting for review of cholesterol results. Reports she has increased her walking as previously advised. States she takes simvastatin daily without missed doses. Reports taking her vitamin most days, occasionally forgetting the evening dose. No other symptoms or complaints were reported during the visit; she indicated an area of discomfort that was examined, but no further history about it was elicited.",
+        "objective": "Vitals: BP 119/76 mmHg, HR 68 bpm, temperature 98.6\u00b0F.\nExam: Lungs clear to auscultation. Mild tenderness at the site indicated by the patient; location and further characterization not specified in the encounter.\nNo laboratory results were reported during the visit.",
+        "assessment": "1. Hyperlipidemia \u2014 patient presenting for review of cholesterol results; actual lipid values were not stated during the visit. Patient reports full adherence to simvastatin and has increased walking. Plan is to continue current therapy unchanged and recheck labs.\n2. Vitamin B12 supplementation \u2014 intermittent adherence reported (occasional missed evening doses); no symptoms discussed.\n3. Localized tenderness on exam \u2014 mild, at a site indicated by the patient; no further characterization, history or impression was discussed during the visit.\nOther recorded conditions (prediabetes, anemia, chronic sinusitis) were not addressed at this visit.",
+        "plan": "1. Continue simvastatin 10 mg orally daily at the same dose \u2014 no change.\n2. Continue vitamin B12 supplementation; adherence discussed, patient reports occasionally missing evening doses.\n3. Recheck labs in approximately 3 months; specific tests not specified in the encounter.\n4. Continue increased walking/physical activity as previously advised.\n5. Follow-up timing tied to repeat labs in 3 months; no specific appointment interval otherwise documented."
+      },
+      "transcript": "Doctor: Hi, good to see you. What brings you in today?\nPatient: I'm here to go over my cholesterol results.\nDoctor: Tell me more about that.\nPatient: I've been walking more like you suggested.\nDoctor: Are you still taking the simvastatin?\nPatient: Yes, every day.\nDoctor: Are you still taking the vitamin?\nPatient: Most days. Sometimes I forget in the evening.\nDoctor: Your blood pressure today is 119 over 76, heart rate 68, temperature 98.6.\nDoctor: Lungs are clear. There's some mild tenderness where you pointed.\nDoctor: Let's continue the simvastatin at the same dose.\nDoctor: I'd like to recheck some labs in three months.\nPatient: Sounds good, thank you."
+    },
+    {
+      "encounter_id": "67698395-eade-49c2-b0d5-3ba4c4933cc3",
+      "status": "IN_REVIEW",
+      "draft_seconds": 19.004567,
+      "model": "claude-opus-5",
+      "flags": [],
+      "note": {
+        "subjective": "78-year-old male presenting for routine diabetes follow-up. Reports increased thirst compared to baseline over recent weeks. States he continues hydrochlorothiazide but missed a couple of doses last week. Also reports taking over-the-counter acetaminophen; dose and frequency not specified. No other symptoms or concerns reported during the visit.",
+        "objective": "Vitals: BP 131/90, HR 79, temperature 99.1. Exam: lungs clear to auscultation; heart sounds normal. No other exam findings, laboratory results (including glucose or A1c), or point-of-care testing documented during the visit.",
+        "assessment": "Diabetes-related routine follow-up in a patient with diabetic kidney disease. Reported increased thirst \u2014 etiology not established during this visit; could reflect hyperglycemia or be related to diuretic therapy. No glucose or A1c results discussed. Hypertension: blood pressure 131/90 today, with reported missed doses of hydrochlorothiazide; clinician elected to continue current regimen unchanged. Low-grade temperature of 99.1\u00b0F noted without associated symptoms discussed.",
+        "plan": "1. Continue hydrochlorothiazide 25 mg orally at the same dose; adherence discussed, patient reported missing a couple of doses last week.\n2. No new medications started or stopped. Patient's use of over-the-counter acetaminophen noted; no dose documented.\n3. No laboratory tests, imaging, or referrals were ordered or discussed during the visit.\n4. Follow-up in 4 weeks, sooner if symptoms worsen."
+      },
+      "transcript": "Doctor: Hi, good to see you. What brings you in today?\nPatient: I'm here for my diabetes check.\nDoctor: Tell me more about that.\nPatient: I've been more thirsty than usual lately.\nDoctor: Are you still taking the hydrochlorothiazide?\nPatient: Yes, though I missed a couple of doses last week.\nPatient: I've also been taking some acetaminophen from the pharmacy.\nDoctor: Your blood pressure today is 131 over 90, heart rate 79, temperature 99.1.\nDoctor: Your lungs sound clear and your heart sounds normal.\nDoctor: Let's continue the hydrochlorothiazide at the same dose.\nDoctor: Let's follow up in four weeks, sooner if things get worse.\nPatient: Sounds good, thank you."
+    },
+    {
+      "encounter_id": "37f35bc0-9017-42f0-a709-bf79c5278699",
+      "status": "IN_REVIEW",
+      "draft_seconds": 19.219899,
+      "model": "claude-opus-5",
+      "flags": [],
+      "note": {
+        "subjective": "52-year-old female presents to discuss recent laboratory results showing borderline elevated blood sugar. She reports she has been trying to cut back on sweets. She continues to take ibuprofen, though she missed a couple of doses in the past week. She also reports taking over-the-counter loratadine; indication and dose were not discussed. No new complaints, pain description, or other symptoms were reported during the visit.",
+        "objective": "Vitals: blood pressure 128/93 mmHg, heart rate 76 bpm, temperature 98.6\u00b0F. Physical exam described by the clinician as reassuring overall; no specific system findings were documented. No laboratory results were reviewed or reported during the visit.",
+        "assessment": "1. Prediabetes \u2014 patient presents to discuss borderline elevated glucose on recent labs; making dietary changes (reducing sweets). Repeat labs planned.\n2. Chronic pain (chronic low back and neck pain) \u2014 managed with ibuprofen; no change in regimen discussed today.\n3. Blood pressure 128/93 with elevated diastolic reading noted today; no diagnosis or specific discussion documented in the visit.\n4. Self-initiated over-the-counter loratadine use reported; indication not discussed during visit.",
+        "plan": "- Continue ibuprofen 400 mg orally at the same dose for chronic pain.\n- Recheck labs in approximately three months (specific tests not specified during the visit).\n- Patient to continue dietary modification, including reduced intake of sweets, for prediabetes.\n- Over-the-counter loratadine use noted; no change directed during the visit.\n- Follow-up timing beyond lab recheck in three months was not documented."
+      },
+      "transcript": "Doctor: Hi, good to see you. What brings you in today?\nPatient: My last labs said my sugar was borderline.\nDoctor: Tell me more about that.\nPatient: I've been trying to cut back on sweets.\nDoctor: Are you still taking the ibuprofen?\nPatient: Yes, though I missed a couple of doses last week.\nPatient: I've also been taking some loratadine from the pharmacy.\nDoctor: Your blood pressure today is 128 over 93, heart rate 76, temperature 98.6.\nDoctor: Exam looks reassuring overall.\nDoctor: Let's continue the ibuprofen at the same dose.\nDoctor: I'd like to recheck some labs in three months.\nPatient: Sounds good, thank you."
+    },
+    {
+      "encounter_id": "d869da1b-44a1-4317-8079-64560d91f286",
+      "status": "IN_REVIEW",
+      "draft_seconds": 18.312618,
+      "model": "claude-opus-5",
+      "flags": [],
+      "note": {
+        "subjective": "51-year-old male presents to discuss his weight. He reports an approximately 10-pound weight gain over the past year. He also notes he has been taking over-the-counter ibuprofen; dose, frequency, indication and duration were not discussed. He reports an area of discomfort which he localized during the exam. No other symptoms, review of systems, or prior weight-management efforts were discussed. History of prediabetes, anemia, chronic sinusitis and obesity per the record.",
+        "objective": "Vitals: BP 135/83, HR 77, temperature 98.2degF. Weight/BMI not documented at this visit.\nLungs: clear to auscultation.\nAbdomen/area of reported discomfort: mild tenderness at the site indicated by the patient. No further exam findings documented.\nNo laboratory or imaging results were reviewed during the visit.",
+        "assessment": "1. Weight gain / obesity (BMI 30+) - approximately 10 lb weight gain over the past year, the patient's primary concern today. Contributing factors and prior weight history were not discussed at this visit.\n2. Prediabetes (per record) - relevant to weight gain; labs to be rechecked in three months.\n3. Mild abdominal/localized tenderness on exam, site as indicated by the patient - etiology not characterized during the visit; the patient reports intermittent over-the-counter ibuprofen use, though indication, dose and frequency were not specified.",
+        "plan": "- Recheck labs in approximately 3 months (specific tests not specified during the visit); follow-up to review results.\n- Continue over-the-counter ibuprofen as the patient has been using; dose, frequency and indication to be clarified at follow-up. No new prescriptions started or existing medications changed today.\n- Weight management counseling (diet, activity, goals) not detailed during this visit; address at follow-up.\n- Patient voiced agreement with the plan."
+      },
+      "transcript": "Doctor: Hi, good to see you. What brings you in today?\nPatient: I want to talk about my weight.\nDoctor: Tell me more about that.\nPatient: I've gained about ten pounds this year.\nPatient: I've also been taking some ibuprofen from the pharmacy.\nDoctor: Your blood pressure today is 135 over 83, heart rate 77, temperature 98.2.\nDoctor: Lungs are clear. There's some mild tenderness where you pointed.\nDoctor: I'd like to recheck some labs in three months.\nPatient: Sounds good, thank you."
+    },
+    {
+      "encounter_id": "0ab29f67-50e3-4a2b-afd0-258931e977c0",
+      "status": "IN_REVIEW",
+      "draft_seconds": 32.709782,
+      "model": "claude-opus-5",
+      "flags": [],
+      "note": {
+        "subjective": "76-year-old male presents with approximately one week of sinus pressure. Reports yellow nasal drainage and facial pain. No fever, cough, dental pain, visual changes, chest pain, or dyspnea reported or elicited in the transcript.\n\nMedication review: reports taking simvastatin daily. Reports using hydrocortisone topical cream most days, with occasional missed evening doses.\n\nPertinent history includes chronic sinusitis, hyperlipidemia, and ischemic heart disease; the cardiac history was not discussed at this visit.",
+        "objective": "Vitals: BP 152/83 mmHg, HR 92 bpm, temperature 98.2 F. Weight/BMI not documented at this visit.\n\nExam: Clinician stated the examination was \"reassuring overall.\" No specific head/neck, sinus, cardiac, pulmonary or other system findings were described during the visit.\n\nNo laboratory or imaging results were reviewed or reported during this encounter.",
+        "assessment": "1. Sinus pressure, facial pain and purulent nasal drainage for approximately one week, on a background of chronic sinusitis. No treatment for the sinus symptoms was discussed during the visit and no diagnostic impression was explicitly stated by the clinician beyond the exam being described as reassuring.\n2. Hyperlipidemia \\u2014 stable on simvastatin, reported daily adherence.\n3. Elevated blood pressure reading today (152/83) with heart rate 92. Not addressed or commented on during the visit.\n4. Partial adherence to topical hydrocortisone (missed evening doses).\n5. History of ischemic heart disease with abnormal cardiac imaging \\u2014 not discussed at this visit; no cardiac symptoms reported.",
+        "plan": "1. Sinus symptoms: No specific treatment, testing, or imaging was ordered or discussed during the visit. Consider addressing symptomatic management or antibiotic therapy \\u2014 not documented in this encounter.\n2. Hyperlipidemia: Continue simvastatin at the same dose. Note: the specific dose was not stated during the visit; the medication list contains both simvastatin 20 mg and simvastatin 10 mg oral tablets \\u2014 clarification of the active dose is needed before signing.\n3. Hydrocortisone 10 MG/ML topical cream: continue; adherence discussed, patient reports missing some evening applications. No change made.\n4. Elevated blood pressure: no plan discussed during the visit; consider recheck.\n5. Follow-up: return visit in 6 months. No return precautions or interval follow-up for the sinus complaint were documented."
+      },
+      "transcript": "Doctor: Hi, good to see you. What brings you in today?\nPatient: I've had sinus pressure for about a week.\nDoctor: Tell me more about that.\nPatient: There's yellow drainage and my face hurts.\nDoctor: Are you still taking the simvastatin?\nPatient: Yes, every day.\nDoctor: Are you still taking the hydrocortisone?\nPatient: Most days. Sometimes I forget in the evening.\nDoctor: Your blood pressure today is 152 over 83, heart rate 92, temperature 98.2.\nDoctor: Exam looks reassuring overall.\nDoctor: Let's continue the simvastatin at the same dose.\nDoctor: I'll see you back in six months.\nPatient: Sounds good, thank you."
+    },
+    {
+      "encounter_id": "1e5d5dcd-0a3f-432e-9311-ce311a61bf0c",
+      "status": "IN_REVIEW",
+      "draft_seconds": 30.337282,
+      "model": "claude-opus-5",
+      "flags": [],
+      "note": {
+        "subjective": "82-year-old female presenting for follow-up of hypertension. Reports a few headaches occurring in the mornings. No associated symptoms described. Reports taking clopidogrel daily and ferrous sulfate daily. Reports taking alendronic acid most days, with occasional missed evening doses. Also reports self-medicating with over-the-counter ibuprofen; dose and frequency not specified. No other complaints reported during the visit.",
+        "objective": "Vitals: BP 112/81, HR 91, temperature 98.2 F. Respiratory rate, oxygen saturation and weight not documented. Lungs clear to auscultation. Mild tenderness on palpation at the site indicated by the patient (location not specified in the encounter). No other exam findings documented. No laboratory or imaging results reviewed during this visit.",
+        "assessment": "1. Essential hypertension \u2014 blood pressure well controlled in office today (112/81) despite report of morning headaches; headaches not clearly attributable to elevated blood pressure. 2. Morning headaches \u2014 etiology not established this visit; no neurologic symptoms elicited or documented. 3. OTC ibuprofen use \u2014 relevant given chronic kidney disease, hypertension and antiplatelet therapy with clopidogrel; potential for blood pressure elevation, renal effects and bleeding risk. 4. Osteoporosis \u2014 on alendronic acid with intermittent missed doses.",
+        "plan": "- Continue clopidogrel 75 mg daily at the same dose.\n- Continue alendronic acid 10 mg; adherence discussed, patient reports occasional missed evening doses.\n- Continue ferrous sulfate 325 mg daily.\n- Over-the-counter ibuprofen use was reported; no specific counseling or instruction was documented during this visit. Recommend clarifying dose/frequency and reviewing appropriateness given chronic kidney disease, hypertension and clopidogrel therapy at or before the next contact.\n- Morning headaches: no additional workup, medication change or testing ordered at this visit.\n- Follow-up in 6 months."
+      },
+      "transcript": "Doctor: Hi, good to see you. What brings you in today?\nPatient: I'm here to follow up on my blood pressure.\nDoctor: Tell me more about that.\nPatient: I've had a few headaches in the mornings.\nDoctor: Are you still taking the clopidogrel?\nPatient: Yes, every day.\nDoctor: Are you still taking the alendronic?\nPatient: Most days. Sometimes I forget in the evening.\nDoctor: Are you still taking the ferrous?\nPatient: Yes, every day.\nPatient: I've also been taking some ibuprofen from the pharmacy.\nDoctor: Your blood pressure today is 112 over 81, heart rate 91, temperature 98.2.\nDoctor: Lungs are clear. There's some mild tenderness where you pointed.\nDoctor: Let's continue the clopidogrel at the same dose.\nDoctor: I'll see you back in six months.\nPatient: Sounds good, thank you."
+    }
+  ]
+}

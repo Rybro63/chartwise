@@ -78,10 +78,13 @@ def check(draft: SoapDraft, *, transcript: str, record_medications: list[str], a
         if not text.strip():
             flags.append(SafetyFlag("EMPTY_SECTION", "low", name, f"The {name} section is empty.", name))
 
-    # What the draft is allowed to mention: the record and the transcript, as canonical drug names.
+    # What the draft is allowed to mention: the record (medications and allergies) and the
+    # transcript, as canonical drug names. A note that says "allergic to penicillin" because the
+    # record says so is documenting, not hallucinating; starting penicillin is caught below.
     record_words = set().union(*(_canonical_words(m) for m in record_medications)) if record_medications else set()
+    allergy_words = set().union(*(_canonical_words(a) for a in allergies)) if allergies else set()
     transcript_words = _canonical_words(transcript)
-    grounded = record_words | transcript_words
+    grounded = record_words | allergy_words | transcript_words
 
     # Record drug names outside the lexicon (e.g. Synthea's less common drugs) are recognised too.
     record_drug_names = {w for w in record_words if len(w) >= 5}
@@ -104,7 +107,6 @@ def check(draft: SoapDraft, *, transcript: str, record_medications: list[str], a
                 section))
 
     # Allergy conflicts, for drugs the draft keeps or starts.
-    allergy_words = set().union(*(_canonical_words(a) for a in allergies)) if allergies else set()
     active = {canonical(w) for m in draft.medications_mentioned if m.status in _ACTIVE for w in _words(m.name)}
     for drug in sorted(active):
         conflict = drug if drug in allergy_words else next(

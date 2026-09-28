@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Chaos experiment: SIGKILL the note worker partway through a batch.
+"""Chaos experiment: SIGKILL the note worker while drafts are in flight.
 
 1. Submit N encounters as fast as the API accepts them.
 2. Once some, but not all, have been drafted, `docker kill` the worker (no graceful shutdown).
@@ -27,7 +27,6 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--count", type=int, default=200)
     ap.add_argument("--kill-after", type=float, default=0.3, help="kill once this share is drafted")
-    ap.add_argument("--batch-size", type=int, default=10, help="the worker's BATCH_SIZE")
     args = ap.parse_args()
 
     token = lib.login()
@@ -52,11 +51,10 @@ def main() -> None:
     sampler = threading.Thread(target=sample, daemon=True)
     sampler.start()
 
+    # The worker keeps CONCURRENCY drafts in flight and commits each partition only up to its
+    # oldest unfinished draft, so at any moment some published drafts sit behind uncommitted
+    # offsets. Killing now forces those to be redelivered.
     lib.wait_until(lambda: len(ids) - lib.drafting_count(ids) >= args.kill_after * len(ids), timeout=300, interval=0.5)
-    # Kill only when the in-flight batch is partly published (drafted count not on a batch
-    # boundary). That is the hard case: some of the batch's drafts are out, its offsets are not
-    # committed, so redelivery necessarily produces duplicates that must be absorbed.
-    lib.wait_until(lambda: (len(ids) - lib.drafting_count(ids)) % args.batch_size != 0, timeout=120, interval=0.1)
     killed_at = time.time() - t0
     drafted_at_kill = len(ids) - lib.drafting_count(ids)
     subprocess.run(["docker", "compose", "kill", "-s", "SIGKILL", "note-worker"], cwd=lib.ROOT, check=True, capture_output=True)

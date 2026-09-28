@@ -94,8 +94,10 @@ def transcript(record: dict, rng: random.Random) -> str:
     if rng.random() < 0.4:
         otc = rng.choice(OTC)
         lines.append(f"Patient: I've also been taking some {otc} from the pharmacy.")
-    if record["allergies"] and rng.random() < 0.6:
-        lines.append(f"Doctor: And you still have the allergy to {record['allergies'][0].split(' (')[0].lower()}, correct?")
+    # Synthea also records "Allergic disposition (finding)", which is not something one is allergic to.
+    allergens = [a for a in record["allergies"] if "(finding)" not in a]
+    if allergens and rng.random() < 0.6:
+        lines.append(f"Doctor: And you're still allergic to {allergens[0].split(' (')[0].lower()}, correct?")
         lines.append("Patient: That's right.")
     sys_bp, dia_bp = rng.randint(112, 158), rng.randint(70, 96)
     lines.append(f"Doctor: Your blood pressure today is {sys_bp} over {dia_bp}, heart rate {rng.randint(60, 96)}, "

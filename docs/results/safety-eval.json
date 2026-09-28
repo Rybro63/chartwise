@@ -1,7 +1,7 @@
 {
   "summary": {
     "patients": 25,
-    "cases": 1084,
+    "cases": 1184,
     "recall_in_scope": 1.0,
     "false_positive_rate": 0.0,
     "precision_in_scope": 1.0
@@ -28,6 +28,15 @@
     {
       "category": "clean_transcription_typo",
       "description": "Transcript misspells a drug the draft spells correctly",
+      "should_flag": false,
+      "in_scope": true,
+      "cases": 100,
+      "flagged": 0,
+      "rate": 0.0
+    },
+    {
+      "category": "clean_allergy_mention",
+      "description": "Draft documents a drug allergy from the record (found in real Claude output)",
       "should_flag": false,
       "in_scope": true,
       "cases": 100,
