@@ -9,28 +9,45 @@ encrypted RDS PostgreSQL instance reachable only from the nodes, and ECR reposit
 > the demo, then run `terraform destroy`.
 
 ```bash
+# 1. Infrastructure (about 15-20 minutes)
 cd deploy/terraform/aws
 terraform init
 terraform apply -var admin_cidr="$(curl -s https://checkip.amazonaws.com)/32"
-$(terraform output -raw kubeconfig_command)
+cd -
 
-# Push images (from the repo root)
-REG=$(terraform -chdir=deploy/terraform/aws output -raw ecr_registry)
-aws ecr get-login-password | docker login --username AWS --password-stdin "$REG"
-for s in encounter-service llm-gateway note-worker review-app; do
-  docker tag chartwise-$s:latest "$REG/chartwise/$s:latest" && docker push "$REG/chartwise/$s:latest"
-done
+# 2. Apps: copies CI's x86 images from GHCR to ECR, generates fresh secrets, deploys, waits
+deploy/k8s/overlays/aws/up.sh            # IMAGE_TAG=<commit sha> to pin; defaults to HEAD
 
-# Deploy
-cd deploy/k8s/overlays/aws && ./render.sh
-kubectl create namespace chartwise
-kubectl -n chartwise create secret generic chartwise-secrets --from-env-file=secrets.env
-kubectl apply -k .
+# 3. Verify
+kubectl -n chartwise port-forward svc/encounter-service 8080:8080 &
+kubectl -n chartwise port-forward svc/hapi 8090:8080 &
+python3 scripts/smoke.py --password "$(cat deploy/k8s/overlays/aws/.demo-password)"
 
-# Tear down (do not skip this)
-kubectl delete -k deploy/k8s/overlays/aws
-terraform -chdir=deploy/terraform/aws destroy
+# 4. Tear down (do not skip this): deletes the apps and Kafka's EBS volume, runs
+#    terraform destroy, then lists anything billable that is left (should print nothing)
+deploy/k8s/overlays/aws/down.sh
 ```
+
+Things this handles that are easy to get wrong:
+
+- **Architecture.** Images built on an Apple Silicon Mac are arm64; the `t3` nodes are x86. `up.sh`
+  copies CI's amd64 images instead of pushing local builds.
+- **Storage.** EKS has no default StorageClass, so the overlay adds an encrypted `gp3` one.
+  Otherwise Kafka's volume claim stays Pending.
+- **Orphaned volumes.** StatefulSet volume claims outlive the StatefulSet, and `terraform destroy`
+  doesn't know about volumes Kubernetes created. `down.sh` deletes the claims first.
+- **Secrets.** Generated per deployment and stored only in the cluster Secret. Nothing from the
+  kind dev values is reused. The LLM stays on the fake provider unless `LLM_PROVIDER=anthropic`
+  and `ANTHROPIC_API_KEY` are set when running `up.sh`.
+- **Account details stay out of git.** `render.sh` writes the RDS host and ECR registry into
+  git-ignored files (`rds.env`, `overlays/aws-rendered/`).
+
+Nothing is exposed publicly: the Kubernetes API accepts only `admin_cidr`, RDS accepts only the
+nodes, and the apps are reached through `kubectl port-forward`.
+
+[`deploy-eks.yml`](../../../.github/workflows/deploy-eks.yml) can deploy from GitHub Actions
+instead, but it needs a GitHub OIDC role (`AWS_DEPLOY_ROLE_ARN`) that this Terraform does not
+create.
 
 Kafka, Redis and HAPI FHIR run inside the cluster. Amazon MSK would be the production choice for
 Kafka, but it costs more per hour than everything else here combined.

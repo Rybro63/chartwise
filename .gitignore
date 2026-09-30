@@ -27,3 +27,5 @@ deploy/k8s/overlays/aws/rds.env
 deploy/k8s/overlays/aws/secrets.env
 tools/transcripts/out/
 *.egg-info/
+deploy/k8s/overlays/aws/.demo-password
+deploy/k8s/overlays/aws-rendered/

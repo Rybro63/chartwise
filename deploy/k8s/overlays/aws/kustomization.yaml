@@ -1,12 +1,7 @@
 # EKS deployment. Postgres is RDS; Kafka, Redis and HAPI run in-cluster to keep the demo cheap
 # (managed Kafka alone costs more per hour than the rest combined).
 #
-# Before applying:
-#   1. deploy/terraform/aws: terraform apply
-#   2. ./render.sh   (writes rds.env and images from terraform outputs)
-#   3. kubectl create secret generic chartwise-secrets -n chartwise --from-env-file=secrets.env
-#      (DB_USER, DB_PASSWORD, JWT_SECRET, ENCRYPTION_KEY, SEED_PASSWORD, WORKER_PASSWORD, ANTHROPIC_API_KEY)
-#   4. kubectl apply -k .
+# Deploy with ./up.sh after `terraform apply`; tear down with ./down.sh (see deploy/terraform/aws).
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: chartwise
@@ -14,6 +9,7 @@ resources:
   - ../../base
   - ../../infra/core
   - db-init.yaml
+  - storageclass.yaml
 configMapGenerator:
   - name: chartwise-config
     behavior: merge
@@ -30,6 +26,7 @@ replacements:
       - select: { kind: Job, name: db-init }
         fieldPaths:
           - "spec.template.spec.containers.0.env.[name=PGHOST].value"
+# render.sh sets the registry host and tag in ../aws-rendered/kustomization.yaml, which wraps this one.
 images:
   - { name: chartwise/encounter-service, newName: ECR_REGISTRY/chartwise/encounter-service, newTag: latest }
   - { name: chartwise/llm-gateway, newName: ECR_REGISTRY/chartwise/llm-gateway, newTag: latest }

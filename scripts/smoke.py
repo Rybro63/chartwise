@@ -40,6 +40,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--api", default="http://localhost:8080")
     ap.add_argument("--fhir", default="http://localhost:8090/fhir")
+    ap.add_argument("--password", default="chartwise-dev", help="demo users' password (random on EKS)")
     args = ap.parse_args()
 
     wait_for(lambda: call("GET", f"{args.fhir}/metadata"), "FHIR server", 600)
@@ -51,7 +52,7 @@ def main():
         "subject": {"reference": f"Patient/{patient['id']}"},
         "medicationCodeableConcept": {"text": "lisinopril 10 MG Oral Tablet"}}, content_type="application/fhir+json")
 
-    login = lambda u: call("POST", f"{args.api}/api/auth/login", {"username": u, "password": "chartwise-dev"})["token"]  # noqa: E731
+    login = lambda u: call("POST", f"{args.api}/api/auth/login", {"username": u, "password": args.password})["token"]  # noqa: E731
     scribe = wait_for(lambda: login("scribe"), "encounter service", 600)
     clinician = login("clinician")
 
