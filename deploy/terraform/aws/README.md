@@ -4,7 +4,7 @@ Creates a VPC (2 AZs, one NAT gateway), an EKS cluster with a 2-node managed nod
 encrypted RDS PostgreSQL instance reachable only from the nodes, and ECR repositories.
 
 > **This costs money every hour it exists.** The EKS control plane, the NAT gateway, two
-> `t3.large` nodes and a small RDS instance come to roughly $0.35/hour (about $8/day) in
+> `m7i-flex.large` nodes and a small RDS instance come to roughly $0.35/hour (about $8/day) in
 > us-east-1 at on-demand prices. Check current pricing before you apply. Deploy, verify, record
 > the demo, then run `terraform destroy`.
 
@@ -16,7 +16,7 @@ terraform apply -var admin_cidr="$(curl -s https://checkip.amazonaws.com)/32"
 cd -
 
 # 2. Apps: copies CI's x86 images from GHCR to ECR, generates fresh secrets, deploys, waits
-deploy/k8s/overlays/aws/up.sh            # IMAGE_TAG=<commit sha> to pin; defaults to HEAD
+deploy/k8s/overlays/aws/up.sh            # IMAGE_TAG=<commit sha> to pin; defaults to origin/main
 
 # 3. Verify
 kubectl -n chartwise port-forward svc/encounter-service 8080:8080 &

@@ -14,7 +14,7 @@ An AI clinical documentation pipeline. It takes a recorded patient visit (as a t
 - **Every Kafka consumer is idempotent**, keyed on encounter ID. Record the key in `processed_message` in the same transaction as the effect, and only when the effect is applied (see `EncounterService.applyDraft` for the ordering and why).
 - **Events are published only through the transactional outbox** (`OutboxWriter`, `Propagation.MANDATORY`). Outbox payloads carry IDs only; PHI is fetched through the internal API.
 - **The audit log is append-only**, enforced by a Postgres trigger. Retention purges encounters, never audit rows.
-- **AWS bills hourly.** Deploy only to verify and record, then `terraform destroy`. Say exactly what was deployed and for how long.
+- **AWS bills hourly.** Deploy only to verify and record (`deploy/k8s/overlays/aws/up.sh`), then tear down with `down.sh` and check nothing is left. Say exactly what was deployed and for how long. The account is on AWS's free plan: only free-tier-eligible instance types launch (hence `m7i-flex.large`).
 - **Report only what was actually run and measured.** Load, chaos and eval results use the gateway's fake LLM provider, and only `docs/results/live-*.json` used real Claude. Say which wherever a number is quoted.
 
 ## Architecture

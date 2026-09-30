@@ -260,9 +260,28 @@ make test-web        # diff algorithm, lint, typecheck, build
   Kafka, Redis, HAPI and tracing from [deploy/k8s/overlays/kind](deploy/k8s/overlays/kind).
   Verified: all pods healthy and the [smoke test](scripts/smoke.py) passing inside the cluster.
 - **AWS:** [deploy/terraform/aws](deploy/terraform/aws) creates a VPC, an EKS cluster, encrypted
-  RDS Postgres and ECR. The [AWS overlay](deploy/k8s/overlays/aws) points the apps at RDS.
-  **It bills by the hour. Deploy, verify, record, then `terraform destroy`.** The Terraform
-  passes `terraform validate`; it has not been applied from this repo yet.
+  RDS Postgres and ECR. `up.sh` and `down.sh` in the [AWS overlay](deploy/k8s/overlays/aws) deploy
+  the apps against RDS and tear everything down. **It bills by the hour. Deploy, verify, record,
+  then destroy.**
+
+#### Deployed once, verified, destroyed (2026-09-30)
+
+| | |
+|---|---|
+| Ran | 19:05 to 20:05 UTC, **1 hour** in total, `us-east-1`; about $0.35, paid from AWS free-plan credits |
+| Infrastructure | EKS 1.34 with 2 × `m7i-flex.large`, RDS PostgreSQL 17 (`db.t4g.micro`, encrypted, private), VPC with one NAT gateway, ECR |
+| Apps | CI's images for [`c6fd582`](https://github.com/Rybro63/chartwise/commit/c6fd58257f8066ba8d54f3ac549d94e8491d068a); 14 pods across both nodes, 0 restarts; Kafka on an encrypted gp3 volume; fake LLM provider |
+| Verified | [Smoke test](scripts/smoke.py) passed (transcript → draft → approve → FHIR `DocumentReference`); 26 Synthea patients loaded; 12 encounters drafted; one approved in the review app and filed; a 23-span trace across all three services in Jaeger |
+| Torn down | `down.sh`: Kafka's EBS volume deleted, `terraform destroy` removed 68 resources, and a sweep found no instances, volumes, databases, snapshots, NAT gateways, IPs, load balancers or repositories left. The EKS KMS key is pending deletion (AWS removes it after 30 days) |
+
+Found on the way: the account is on AWS's free plan, which can launch only free-tier-eligible
+instance types, so `t3.large` nodes never started. The default is now `m7i-flex.large` (same
+2 vCPU / 8 GiB). Before the first apply, a dry run also caught three things kind couldn't: EKS has
+no default StorageClass, Mac-built images are arm64, and Kafka's volume would outlive
+`terraform destroy`. Record: [aws-eks.json](docs/results/aws-eks.json).
+
+![Filed on EKS](docs/screenshots/eks-filed.png)
+![Trace on EKS](docs/screenshots/eks-trace.png)
 
 ### CI/CD
 

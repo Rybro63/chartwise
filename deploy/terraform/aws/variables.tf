@@ -14,9 +14,9 @@ variable "kubernetes_version" {
 }
 
 variable "node_instance_type" {
-  description = "Worker node size. t3.large fits the whole demo on two nodes."
+  description = "Worker node size: 2 vCPU / 8 GiB fits the whole demo on two nodes. m7i-flex.large is allowed on AWS free-plan accounts (t3.large is not) and costs about the same."
   type        = string
-  default     = "t3.large"
+  default     = "m7i-flex.large"
 }
 
 variable "node_count" {

@@ -1,0 +1,159 @@
+{
+  "date": "2026-09-30",
+  "region": "us-east-1",
+  "apply_started_utc": "2026-09-30T19:05:03Z",
+  "infrastructure": {
+    "eks": "1.34, 2 x m7i-flex.large (x86)",
+    "rds": "PostgreSQL 17, db.t4g.micro, encrypted, private",
+    "network": "VPC, 2 AZs, 1 NAT gateway",
+    "ecr": "4 repositories"
+  },
+  "llm_provider": "fake",
+  "image_tag": "c6fd58257f8066ba8d54f3ac549d94e8491d068a",
+  "nodes": [
+    {
+      "name": "ip-10-40-1-84.ec2.internal",
+      "instance_type": "m7i-flex.large",
+      "zone": "us-east-1a",
+      "kubelet": "v1.34.11-eks-f4fc4f1",
+      "arch": "amd64"
+    },
+    {
+      "name": "ip-10-40-2-53.ec2.internal",
+      "instance_type": "m7i-flex.large",
+      "zone": "us-east-1b",
+      "kubelet": "v1.34.11-eks-f4fc4f1",
+      "arch": "amd64"
+    }
+  ],
+  "pods": [
+    {
+      "name": "db-init-zqzwk",
+      "phase": "Succeeded",
+      "node": "ip-10-40-2-53.ec2.internal",
+      "image": "postgres:17-alpine",
+      "restarts": 0
+    },
+    {
+      "name": "encounter-service-5b5cfcd497-kpnb7",
+      "phase": "Running",
+      "node": "ip-10-40-1-84.ec2.internal",
+      "image": "encounter-service:c6fd58257f8066ba8d54f3ac549d94e8491d068a",
+      "restarts": 0
+    },
+    {
+      "name": "encounter-service-5b5cfcd497-x28wc",
+      "phase": "Running",
+      "node": "ip-10-40-2-53.ec2.internal",
+      "image": "encounter-service:c6fd58257f8066ba8d54f3ac549d94e8491d068a",
+      "restarts": 0
+    },
+    {
+      "name": "hapi-666845c589-4cl9q",
+      "phase": "Running",
+      "node": "ip-10-40-2-53.ec2.internal",
+      "image": "hapi:v8.12.0-1",
+      "restarts": 0
+    },
+    {
+      "name": "jaeger-7b98668678-7cxvw",
+      "phase": "Running",
+      "node": "ip-10-40-1-84.ec2.internal",
+      "image": "jaeger:2.10.0",
+      "restarts": 0
+    },
+    {
+      "name": "kafka-0",
+      "phase": "Running",
+      "node": "ip-10-40-1-84.ec2.internal",
+      "image": "kafka:4.1.0",
+      "restarts": 0
+    },
+    {
+      "name": "kafka-topics-skksc",
+      "phase": "Succeeded",
+      "node": "ip-10-40-1-84.ec2.internal",
+      "image": "kafka:4.1.0",
+      "restarts": 0
+    },
+    {
+      "name": "llm-gateway-66d75bf95-9lnfl",
+      "phase": "Running",
+      "node": "ip-10-40-1-84.ec2.internal",
+      "image": "llm-gateway:c6fd58257f8066ba8d54f3ac549d94e8491d068a",
+      "restarts": 0
+    },
+    {
+      "name": "llm-gateway-66d75bf95-sbrlj",
+      "phase": "Running",
+      "node": "ip-10-40-2-53.ec2.internal",
+      "image": "llm-gateway:c6fd58257f8066ba8d54f3ac549d94e8491d068a",
+      "restarts": 0
+    },
+    {
+      "name": "note-worker-5f89d7468-jnxwd",
+      "phase": "Running",
+      "node": "ip-10-40-2-53.ec2.internal",
+      "image": "note-worker:c6fd58257f8066ba8d54f3ac549d94e8491d068a",
+      "restarts": 0
+    },
+    {
+      "name": "note-worker-5f89d7468-q75d5",
+      "phase": "Running",
+      "node": "ip-10-40-1-84.ec2.internal",
+      "image": "note-worker:c6fd58257f8066ba8d54f3ac549d94e8491d068a",
+      "restarts": 0
+    },
+    {
+      "name": "otel-collector-65fcdf5799-jj9w5",
+      "phase": "Running",
+      "node": "ip-10-40-1-84.ec2.internal",
+      "image": "opentelemetry-collector-contrib:0.135.0",
+      "restarts": 0
+    },
+    {
+      "name": "redis-5b95c77b87-cqmrb",
+      "phase": "Running",
+      "node": "ip-10-40-1-84.ec2.internal",
+      "image": "redis:8-alpine",
+      "restarts": 0
+    },
+    {
+      "name": "review-app-d6d4d784c-q7z26",
+      "phase": "Running",
+      "node": "ip-10-40-1-84.ec2.internal",
+      "image": "review-app:c6fd58257f8066ba8d54f3ac549d94e8491d068a",
+      "restarts": 0
+    }
+  ],
+  "volumes": [
+    {
+      "name": "data-kafka-0",
+      "class": "gp3",
+      "status": "Bound"
+    }
+  ],
+  "smoke_test": "PASS: synthetic patient -> transcript -> AI draft (0 flags) -> approve -> FHIR DocumentReference",
+  "ui_check": "12 seeded encounters drafted; one approved in the review app and filed to FHIR",
+  "trace": {
+    "spans": 23,
+    "services": [
+      "encounter-service",
+      "note-worker",
+      "llm-gateway"
+    ],
+    "duration_s": 2.06
+  },
+  "issues_found": [
+    "t3.large rejected: AWS free-plan accounts can launch only free-tier-eligible types; switched to m7i-flex.large (same 2 vCPU / 8 GiB)"
+  ],
+  "destroy_finished_utc": "2026-09-30T20:05:22Z",
+  "total_runtime": "1h00m (infrastructure existed 19:05-20:05 UTC; worker nodes about 35 min)",
+  "teardown": {
+    "terraform_destroy": "68 resources destroyed",
+    "kafka_ebs_volume": "deleted by the EBS CSI driver before destroy",
+    "leftover_check": "none: EKS, EC2, EBS, RDS instances and snapshots, NAT, Elastic IPs, load balancers, ECR, VPC, log groups, IAM roles",
+    "remaining": "EKS secrets KMS key in PendingDeletion, removed by AWS on 2026-10-30"
+  },
+  "cost": "about $0.35 at on-demand prices, charged to AWS free-plan credits"
+}

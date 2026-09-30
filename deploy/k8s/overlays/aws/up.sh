@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Deploys Chartwise to the EKS cluster created by deploy/terraform/aws.
 #
-# Images: copies the x86 images CI pushed to GHCR (IMAGE_TAG, default the current commit) into
+# Images: copies the x86 images CI pushed to GHCR (IMAGE_TAG, default origin/main, the last
+# commit CI built) into
 # ECR. Images built on an Apple Silicon Mac are arm64 and won't run on the t3 nodes.
 # Secrets: generated fresh here (never the kind dev values) and kept only in the cluster, except
 # the demo login password, which is written to the git-ignored .demo-password for the smoke test.
@@ -11,7 +12,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 TF="$ROOT/deploy/terraform/aws"
 OWNER="${GHCR_OWNER:-rybro63}"
-export IMAGE_TAG="${IMAGE_TAG:-$(git -C "$ROOT" rev-parse HEAD)}"
+export IMAGE_TAG="${IMAGE_TAG:-$(git -C "$ROOT" rev-parse origin/main)}"
 
 $(terraform -chdir="$TF" output -raw kubeconfig_command)
 REGISTRY=$(terraform -chdir="$TF" output -raw ecr_registry)

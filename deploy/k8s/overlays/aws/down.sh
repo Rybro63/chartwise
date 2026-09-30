@@ -20,9 +20,8 @@ fi
 terraform -chdir="$TF" destroy -auto-approve -var admin_cidr=0.0.0.0/32
 
 echo "Leftover check (all should be empty):"
-aws ec2 describe-volumes --region "$REGION" --filters Name=tag:KubernetesCluster,Values=chartwise \
-  --query 'Volumes[].VolumeId' --output text
-aws ec2 describe-volumes --region "$REGION" --filters Name=tag-key,Values=kubernetes.io/cluster/chartwise \
+# The EBS CSI driver tags volumes with the claim's namespace, not the cluster name.
+aws ec2 describe-volumes --region "$REGION" --filters Name=tag:kubernetes.io/created-for/pvc/namespace,Values=chartwise \
   --query 'Volumes[].VolumeId' --output text
 aws eks list-clusters --region "$REGION" --query 'clusters[?@==`chartwise`]' --output text
 aws rds describe-db-instances --region "$REGION" --query 'DBInstances[?DBInstanceIdentifier==`chartwise`].DBInstanceIdentifier' --output text
