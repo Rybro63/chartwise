@@ -36,7 +36,9 @@ const DETAIL: DraftDetail = {
 
 export interface MockState {
   versions: NoteVersionView[]
-  status: 'IN_REVIEW' | 'APPROVED' | 'FILED'
+  status: 'TRANSCRIBING' | 'IN_REVIEW' | 'APPROVED' | 'FILED'
+  /** The last recording uploaded: its file name and size. */
+  uploaded: { name: string; bytes: number } | null
   approvedVersion: number | null
   /** When set, the next save is rejected as if someone else had saved first. */
   conflictOnNextSave: boolean
@@ -49,17 +51,19 @@ export async function mockApi(page: Page, role: Role): Promise<MockState> {
     status: 'IN_REVIEW',
     approvedVersion: null,
     conflictOnNextSave: false,
+    uploaded: null,
   }
   const summary = () => ({
     id: ENCOUNTER_ID, patientId: 'p1', patientName: 'Synthetic Patient', status: state.status, createdBy: 'scribe',
     createdAt: '2026-10-19T14:00:00Z', draftedAt: '2026-10-19T14:00:05Z',
     currentVersion: state.versions.length, safetyFlagCount: 1,
   })
+  const transcribing = () => state.status === 'TRANSCRIBING'
   const detail = (): EncounterDetail => ({
     summary: summary(),
-    transcript: TRANSCRIPT,
-    versions: state.versions.map(({ soap: _soap, safetyFlags, ...meta }) => ({ ...meta, safetyFlagCount: safetyFlags.length })),
-    latest: state.versions.at(-1)!,
+    transcript: transcribing() ? null : TRANSCRIPT,
+    versions: transcribing() ? [] : state.versions.map(({ soap: _soap, safetyFlags, ...meta }) => ({ ...meta, safetyFlagCount: safetyFlags.length })),
+    latest: transcribing() ? null : state.versions.at(-1)!,
     draftSafetyFlags: [{ code: 'UNSUPPORTED_STATEMENT', severity: 'medium', subject: 'Start aspirin 81 mg daily.',
                          message: 'This statement cites no line of the transcript and no part of the record.', section: 'plan' }],
     draftDetail: DETAIL,
@@ -82,6 +86,16 @@ export async function mockApi(page: Page, role: Role): Promise<MockState> {
                            displayName: role === 'CLINICIAN' ? 'Dr. Test' : 'Test Scribe' })
     }
     if (path === '/api/encounters' && method === 'GET') return json(route, [summary()])
+    if (path === '/api/patients') {
+      return json(route, [{ id: 'p1', name: 'Synthetic Patient', gender: 'female', birthDate: '1961-04-02' }])
+    }
+    if (path === '/api/encounters/recording' && method === 'POST') {
+      const body = route.request().postDataBuffer() ?? Buffer.alloc(0)
+      const name = /filename="([^"]+)"/.exec(body.toString('latin1'))?.[1] ?? ''
+      state.uploaded = { name, bytes: body.length }
+      state.status = 'TRANSCRIBING'
+      return json(route, summary(), 202)
+    }
     if (path === `/api/encounters/${ENCOUNTER_ID}` && method === 'GET') return json(route, detail())
     if (path === `/api/encounters/${ENCOUNTER_ID}/patient-context`) {
       return json(route, { ageYears: 61, gender: 'female', conditions: ['Essential hypertension (disorder)'],

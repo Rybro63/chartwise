@@ -35,6 +35,7 @@ export function AdminPage() {
         <select value={status} onChange={(e) => setStatus(e.target.value as EncounterStatus | '')}>
           <option value="DRAFT_FAILED">Draft failed</option>
           <option value="APPROVED">Approved (not yet filed)</option>
+          <option value="TRANSCRIBING">Transcribing</option>
           <option value="DRAFTING">Drafting</option>
           <option value="">All</option>
         </select>

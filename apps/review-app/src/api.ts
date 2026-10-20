@@ -1,7 +1,7 @@
 // Typed client for the encounter service REST API.
 
 export type Role = 'CLINICIAN' | 'SCRIBE' | 'ADMIN' | 'SERVICE'
-export type EncounterStatus = 'DRAFTING' | 'IN_REVIEW' | 'APPROVED' | 'FILED' | 'DRAFT_FAILED'
+export type EncounterStatus = 'TRANSCRIBING' | 'DRAFTING' | 'IN_REVIEW' | 'APPROVED' | 'FILED' | 'DRAFT_FAILED'
 export type AuthorType = 'AI' | 'HUMAN'
 
 export interface Session {
@@ -79,7 +79,8 @@ export interface NoteVersionView extends Omit<NoteVersionMeta, 'safetyFlagCount'
 
 export interface EncounterDetail {
   summary: EncounterSummary
-  transcript: string
+  /** Null while a recording is being transcribed. */
+  transcript: string | null
   versions: NoteVersionMeta[]
   latest: NoteVersionView | null
   draftSafetyFlags: SafetyFlag[]
@@ -167,10 +168,13 @@ export function setUnauthorizedHandler(handler: () => void): void {
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const session = loadSession()
   const headers: Record<string, string> = {}
-  if (body !== undefined) headers['Content-Type'] = 'application/json'
+  // FormData (a file upload) sets its own multipart Content-Type; everything else is JSON.
+  const form = body instanceof FormData
+  if (body !== undefined && !form) headers['Content-Type'] = 'application/json'
   if (session) headers.Authorization = `Bearer ${session.token}`
 
-  const res = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) })
+  const payload = body === undefined ? undefined : form ? body : JSON.stringify(body)
+  const res = await fetch(path, { method, headers, body: payload })
   if (res.status === 401 && path !== '/api/auth/login') {
     onUnauthorized()
   }
@@ -195,6 +199,12 @@ export const api = {
     request<EncounterSummary[]>('GET', `/api/encounters${status ? `?status=${status}` : ''}`),
   createEncounter: (patientId: string, transcript: string) =>
     request<EncounterSummary>('POST', '/api/encounters', { patientId, transcript }),
+  uploadRecording: (patientId: string, file: File) => {
+    const form = new FormData()
+    form.append('patientId', patientId)
+    form.append('file', file)
+    return request<EncounterSummary>('POST', '/api/encounters/recording', form)
+  },
   encounter: (id: string) => request<EncounterDetail>('GET', `/api/encounters/${id}`),
   version: (id: string, version: number) => request<NoteVersionView>('GET', `/api/encounters/${id}/notes/${version}`),
   patientContext: (id: string) => request<PatientContext>('GET', `/api/encounters/${id}/patient-context`),

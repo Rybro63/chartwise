@@ -20,7 +20,7 @@ export function EncounterPage() {
   const { session } = useAuth()
   const { data: detail, error, refresh } = usePolling<EncounterDetail>(
     () => api.encounter(id), 2000,
-    (d) => !d || d.summary.status === 'DRAFTING' || d.summary.status === 'APPROVED')
+    (d) => !d || ['TRANSCRIBING', 'DRAFTING', 'APPROVED'].includes(d.summary.status))
 
   const [context, setContext] = useState<PatientContext>()
   // Edits are tied to the version they started from; when a new version loads they no longer apply.
@@ -110,8 +110,11 @@ export function EncounterPage() {
       <div className="split">
         <section className="panel">
           <h3>Transcript</h3>
+          {detail.transcript === null && (
+            <p className="drafting">Transcribing the recording… this page updates automatically.</p>
+          )}
           <div className="transcript" role="list">
-            {detail.transcript.split('\n').map((text, i) => (
+            {(detail.transcript ? detail.transcript.split('\n') : []).map((text, i) => (
               <div key={i} id={`t-line-${i + 1}`} role="listitem"
                    className={`t-line${highlighted.has(i + 1) ? ' t-line-hl' : ''}`}>
                 <span className="t-num" aria-hidden="true">{i + 1}</span>

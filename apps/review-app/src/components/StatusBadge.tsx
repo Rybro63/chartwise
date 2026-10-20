@@ -1,6 +1,7 @@
 import type { EncounterStatus } from '../api'
 
 const LABELS: Record<EncounterStatus, string> = {
+  TRANSCRIBING: 'Transcribing',
   DRAFTING: 'Drafting',
   IN_REVIEW: 'Needs review',
   APPROVED: 'Approved — filing',

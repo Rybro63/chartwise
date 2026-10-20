@@ -62,3 +62,20 @@ test('the medication list shows what the draft did with each drug', async ({ pag
   await expect(row).toContainText('started')
   await expect(row).toContainText('81 mg')
 })
+
+test('a scribe uploads a recording and the visit waits for its transcript', async ({ page }) => {
+  const state = await mockApi(page, 'SCRIBE')
+  await signIn(page, 'scribe')
+  await page.getByRole('link', { name: 'New visit' }).first().click()
+  await page.locator('select').selectOption('p1')
+  await expect(page.getByRole('tab', { name: 'Recording' })).toHaveAttribute('aria-selected', 'true')
+  await page.getByLabel('Visit recording').setInputFiles({
+    name: 'visit.wav', mimeType: 'audio/wav', buffer: Buffer.from('RIFF-synthetic-audio'),
+  })
+  await page.getByRole('button', { name: 'Create encounter' }).click()
+
+  await expect(page).toHaveURL(new RegExp(`/encounters/${ENCOUNTER_ID}$`))
+  await expect(page.getByText('Transcribing the recording')).toBeVisible()
+  await expect(page.locator('.badge')).toHaveText('Transcribing')
+  expect(state.uploaded?.name).toBe('visit.wav')
+})

@@ -7,6 +7,7 @@ import { usePolling } from '../lib/usePolling'
 
 const FILTERS: { label: string; status?: EncounterStatus }[] = [
   { label: 'Needs review', status: 'IN_REVIEW' },
+  { label: 'Transcribing', status: 'TRANSCRIBING' },
   { label: 'Drafting', status: 'DRAFTING' },
   { label: 'Filed', status: 'FILED' },
   { label: 'All' },
