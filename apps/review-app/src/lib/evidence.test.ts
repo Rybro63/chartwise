@@ -4,17 +4,18 @@ import { sourceLines } from './evidence'
 
 const detail: DraftDetail = {
   evidence: [
-    { section: 'subjective', text: 'Reports morning headaches.', lines: [6], fromRecord: false },
-    { section: 'assessment', text: 'Essential hypertension.', lines: [], fromRecord: true },
-    { section: 'plan', text: 'Increase lisinopril to 20 mg daily.', lines: [14, 15], fromRecord: false },
-    { section: 'plan', text: 'Start aspirin 81 mg.', lines: [], fromRecord: false },
+    { section: 'subjective', text: 'Reports morning headaches.', lines: [6], fromRecord: false, absence: false },
+    { section: 'objective', text: 'Exam not documented.', lines: [], fromRecord: false, absence: true },
+    { section: 'assessment', text: 'Essential hypertension.', lines: [], fromRecord: true, absence: false },
+    { section: 'plan', text: 'Increase lisinopril to 20 mg daily.', lines: [14, 15], fromRecord: false, absence: false },
+    { section: 'plan', text: 'Start aspirin 81 mg.', lines: [], fromRecord: false, absence: false },
   ],
   medications: [],
 }
 
 const note: SoapNote = {
   subjective: 'Reports morning headaches.',
-  objective: '',
+  objective: 'Exam not documented.',
   assessment: 'Essential hypertension.',
   plan: 'Increase lisinopril to 20 mg daily.\nStart aspirin 81 mg.\nFollow up in four weeks.',
 }
@@ -23,6 +24,7 @@ describe('sourceLines', () => {
   it('links each draft line to its transcript lines, the record, or nothing', () => {
     expect(sourceLines(note, detail).map((l) => [l.kind, l.lines])).toEqual([
       ['transcript', [6]],
+      ['absence', []],
       ['record', []],
       ['transcript', [14, 15]],
       ['unsourced', []],
@@ -36,7 +38,7 @@ describe('sourceLines', () => {
   })
 
   it('matches within the same section only', () => {
-    const moved = { ...note, subjective: '', objective: 'Reports morning headaches.' }
+    const moved = { ...note, subjective: '', objective: 'Reports morning headaches.\nExam not documented.' }
     expect(sourceLines(moved, detail).find((l) => l.section === 'objective')?.kind).toBe('edited')
   })
 })

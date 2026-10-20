@@ -14,6 +14,8 @@ function describe(line: SourcedLine): string {
       return `From transcript line${line.lines.length > 1 ? 's' : ''} ${line.lines.join(', ')}`
     case 'record':
       return 'From the patient record'
+    case 'absence':
+      return 'Says something was not documented'
     case 'unsourced':
       return 'No source in the transcript or record. Verify before approving.'
     case 'edited':
@@ -32,7 +34,9 @@ export function SourcesView({ lines, selected, onSelect }: {
     <div className="sources">
       <p className="muted small">
         Select a line to see where it came from.{' '}
-        {unsourced > 0 && <span className="source-warning">{unsourced} line{unsourced === 1 ? '' : 's'} cite no source.</span>}
+        {unsourced > 0 && (
+          <span className="source-warning">{unsourced === 1 ? '1 line cites' : `${unsourced} lines cite`} no source.</span>
+        )}
       </p>
       {(Object.keys(LABELS) as (keyof SoapNote)[]).map((section) => {
         const own = lines.filter((l) => l.section === section)

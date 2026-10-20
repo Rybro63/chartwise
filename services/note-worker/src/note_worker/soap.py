@@ -9,6 +9,11 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from .errors import DraftFormatError
 
 SECTIONS = ("subjective", "objective", "assessment", "plan")
+# "Respiratory rate not documented." states an absence, which has no line to cite.
+_ABSENCE = re.compile(r"\bnot (?:documented|discussed|reported|assessed|obtained|performed|taken|stated|mentioned|"
+                      r"addressed|reviewed|recorded|measured|examined)\b|\bno (?:\w+ ){0,3}(?:was |were )?"
+                      r"(?:documented|discussed|reported|recorded)\b|\bnone (?:documented|reported|discussed)\b",
+                      re.IGNORECASE)
 _FILLER = re.compile(r"^\W*(?:placeholder|tbd|todo|n/?a|none|pending|\.\.\.)\W*$", re.IGNORECASE)
 
 
@@ -57,10 +62,12 @@ class SoapDraft(BaseModel):
 
     def evidence(self, transcript_line_count: int) -> list[dict]:
         """Statements with their sources, for the reviewer. Citations of lines that don't exist are
-        dropped, so a statement citing only those counts as unsourced."""
+        dropped, so a statement citing only those counts as unsourced. "absence" marks statements
+        that something wasn't documented, which need no source; the safety check and the review
+        app both rely on it, so the rule lives in one place."""
         return [{"section": section, "text": s.text.strip(),
                  "lines": sorted({n for n in s.transcript_lines if 1 <= n <= transcript_line_count}),
-                 "fromRecord": s.from_record}
+                 "fromRecord": s.from_record, "absence": bool(_ABSENCE.search(s.text))}
                 for section, s in self.statements()]
 
 

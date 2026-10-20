@@ -236,6 +236,7 @@ class EncounterFlowIntegrationTest extends IntegrationTestBase {
                 Map.entry("eventType", "NoteDrafted"),
                 Map.entry("encounterId", id.toString()),
                 Map.entry("soap", soap("Continue lisinopril 10 mg daily. " + CANARY_NOTE)),
+                // No "absence" field, as from a worker that predates it: the event must still apply.
                 Map.entry("evidence", List.of(Map.of("section", "plan", "text", "Continue lisinopril 10 mg daily. " + CANARY_NOTE,
                         "lines", List.of(2), "fromRecord", true))),
                 Map.entry("medications", List.of(Map.of("name", "lisinopril", "status", "continued", "dose", "10 mg"))),

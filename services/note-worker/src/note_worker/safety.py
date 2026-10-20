@@ -44,11 +44,7 @@ from .soap import SoapDraft
 
 _WORD = re.compile(r"[a-z][a-z\-]+")
 _ACTIVE = {"continued", "started", "changed"}
-# "Respiratory rate not documented." states an absence, which has no line to cite.
-_ABSENCE = re.compile(r"\bnot (?:documented|discussed|reported|assessed|obtained|performed|taken|stated|mentioned|"
-                      r"addressed|reviewed|recorded|measured|examined)\b|\bno (?:\w+ ){0,3}(?:was |were )?"
-                      r"(?:documented|discussed|reported|recorded)\b|\bnone (?:documented|reported|discussed)\b",
-                      re.IGNORECASE)
+
 
 
 @dataclass(frozen=True)
@@ -96,7 +92,7 @@ def check(draft: SoapDraft, *, transcript: str, record_medications: list[str], a
 
     line_count = len(transcript.splitlines())
     for item in draft.evidence(line_count):
-        if not item["lines"] and not item["fromRecord"] and not _ABSENCE.search(item["text"]):
+        if not item["lines"] and not item["fromRecord"] and not item["absence"]:
             subject = item["text"] if len(item["text"]) <= 80 else item["text"][:77] + "..."
             flags.append(SafetyFlag("UNSUPPORTED_STATEMENT", "medium", subject,
                                     "This statement cites no line of the transcript and no part of the record.",

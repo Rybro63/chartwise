@@ -1,6 +1,6 @@
 import { SOAP_SECTIONS, type DraftDetail, type EvidenceStatement, type SoapNote } from '../api'
 
-export type SourceKind = 'transcript' | 'record' | 'unsourced' | 'edited'
+export type SourceKind = 'transcript' | 'record' | 'absence' | 'unsourced' | 'edited'
 
 export interface SourcedLine {
   section: keyof SoapNote
@@ -29,7 +29,7 @@ export function sourceLines(note: SoapNote, detail: DraftDetail): SourcedLine[] 
       const statement = bySection.get(`${section}\u0000${text}`)?.[0]
       if (!statement) out.push({ section, text, kind: 'edited', lines: [] })
       else if (statement.lines.length) out.push({ section, text, kind: 'transcript', lines: statement.lines })
-      else out.push({ section, text, kind: statement.fromRecord ? 'record' : 'unsourced', lines: [] })
+      else out.push({ section, text, kind: statement.fromRecord ? 'record' : statement.absence ? 'absence' : 'unsourced', lines: [] })
     }
   }
   return out

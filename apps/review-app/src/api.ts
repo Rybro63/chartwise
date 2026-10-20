@@ -35,6 +35,8 @@ export interface EvidenceStatement {
   /** 1-based transcript line numbers the statement cites. */
   lines: number[]
   fromRecord: boolean
+  /** States that something wasn't documented, so it needs no source. Null on older drafts. */
+  absence?: boolean | null
 }
 
 export interface DraftMedication {
