@@ -32,8 +32,8 @@ test-go: ## LLM gateway
 	cd services/llm-gateway && go vet ./... && go test -race ./...
 test-python: ## Note worker (includes the Kafka crash test)
 	cd services/note-worker && .venv/bin/python -m pytest -q
-test-web: ## Review app
-	cd apps/review-app && npm run lint && npm test && npm run build
+test-web: ## Review app (end-to-end tests need `npx playwright install chromium` once)
+	cd apps/review-app && npm run lint && npm test && npm run build && npx playwright test
 
 venv: ## Create the note worker's virtualenv
 	cd services/note-worker && python3 -m venv .venv && .venv/bin/pip install -e '.[dev]'

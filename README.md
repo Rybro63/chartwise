@@ -331,7 +331,8 @@ make test-java       # 16 tests; Testcontainers Postgres + Kafka: full flow, dup
                      #   encrypted draft sources, edit ratios
 make test-go         # breaker state machine, Redis token bucket, retries, gRPC server (bufconn)
 make test-python     # safety check, parsing, PHI log canary, gateway retry, Kafka crash test
-make test-web        # diff algorithm, lint, typecheck, build
+make test-web        # diff and source matching, lint, typecheck, build, and Playwright end-to-end tests
+                     #   of the review flow (sources, edit, 409 on a stale save, approve, roles)
 ```
 
 ### Kubernetes and AWS
