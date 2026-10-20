@@ -35,7 +35,9 @@ def visits() -> list[dict]:
 
 
 def create_encounter(token: str, visit: dict) -> str:
-    return http("POST", f"{API}/api/encounters", visit, token)["id"]
+    # The answer key ("facts") stays with the experiment; the API gets what a scribe would upload.
+    body = {"patientId": visit["patientId"], "transcript": visit["transcript"]}
+    return http("POST", f"{API}/api/encounters", body, token)["id"]
 
 
 def prom(query: str) -> float | None:

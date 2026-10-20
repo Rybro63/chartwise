@@ -104,7 +104,9 @@ gateway's fake provider** (1.5 s latency plus up to
 1 s of jitter, with a 10% rate of injected medication hallucinations), not Claude. That makes
 runs free and repeatable, and exercises every other component for real. The numbers describe the
 pipeline's behaviour, not Claude's latency or accuracy. Each experiment is one command, and its
-raw data is in [docs/results](docs/results).
+raw data is in [docs/results](docs/results). These runs used the original short templated
+transcripts (now `generate.py --style simple`); the generator's default is now the
+[realistic visits](tools/transcripts/messy.py) described under [note quality](#note-quality).
 
 ### Load: where the 30-second SLO holds, and what fixes it
 

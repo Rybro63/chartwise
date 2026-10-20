@@ -51,7 +51,7 @@ export function setup() {
 
 export default function (data) {
   const visit = visits[Math.floor(Math.random() * visits.length)]
-  const res = http.post(`${API}/api/encounters`, JSON.stringify(visit), {
+  const res = http.post(`${API}/api/encounters`, JSON.stringify({ patientId: visit.patientId, transcript: visit.transcript }), {
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.token}` },
     tags: { name: 'create' },
   })

@@ -1,9 +1,18 @@
 #!/usr/bin/env python3
 """Generates synthetic visit transcripts for the Synthea patients in HAPI FHIR.
 
-Each transcript is a templated doctor-patient conversation built from the patient's (synthetic)
-active conditions, medications and allergies, with seeded randomness. Output is a JSON list of
-{"patientId", "transcript"} used by the demo seeder and the k6 load test.
+Each visit is built from the patient's (synthetic) active conditions, medications and allergies,
+with seeded randomness. Two styles:
+
+messy (default)
+    A realistic visit with corrections, distractors and speech-to-text errors, plus an answer key
+    of what a faithful note must and must not say (see messy.py). Used by the demo, the load and
+    chaos experiments, and the note-quality eval.
+simple
+    A short templated conversation (the original generator). The safety-check mutation eval
+    builds its cases from it.
+
+Output is a JSON list of {"patientId", "transcript", "facts"} ("facts" only for messy).
 
     python3 generate.py --fhir http://localhost:8090/fhir --per-patient 4 --out out/visits.json
 
@@ -14,8 +23,12 @@ import argparse
 import json
 import random
 import re
+import sys
 import urllib.request
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import messy  # noqa: E402
 
 COMPLAINTS = [
     ("hypertension", "I'm here to follow up on my blood pressure.", "I've had a few headaches in the mornings."),
@@ -123,6 +136,7 @@ def main() -> None:
     ap.add_argument("--fhir", default="http://localhost:8090/fhir")
     ap.add_argument("--per-patient", type=int, default=4)
     ap.add_argument("--seed", type=int, default=7)
+    ap.add_argument("--style", choices=["messy", "simple"], default="messy")
     ap.add_argument("--out", default=str(Path(__file__).parent / "out" / "visits.json"))
     args = ap.parse_args()
 
@@ -132,11 +146,14 @@ def main() -> None:
     for p in patients:
         record = patient_record(args.fhir, p["id"])
         for _ in range(args.per_patient):
-            visits.append({"patientId": p["id"], "transcript": transcript(record, rng)})
+            if args.style == "simple":
+                visits.append({"patientId": p["id"], "transcript": transcript(record, rng)})
+            else:
+                visits.append({"patientId": p["id"], **messy.visit(record, rng)})
     rng.shuffle(visits)
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text(json.dumps(visits, indent=1))
-    print(f"wrote {len(visits)} synthetic transcripts for {len(patients)} patients to {args.out}")
+    print(f"wrote {len(visits)} synthetic {args.style} transcripts for {len(patients)} patients to {args.out}")
 
 
 if __name__ == "__main__":

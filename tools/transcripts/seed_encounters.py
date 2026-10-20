@@ -29,7 +29,7 @@ def main() -> None:
     token = call("POST", f"{args.api}/api/auth/login", {"username": args.user, "password": args.password})["token"]
     visits = json.loads(Path(args.visits).read_text())[: args.count]
     for v in visits:
-        created = call("POST", f"{args.api}/api/encounters", v, token)
+        created = call("POST", f"{args.api}/api/encounters", {"patientId": v["patientId"], "transcript": v["transcript"]}, token)
         print(created["id"], created["status"])
 
 
