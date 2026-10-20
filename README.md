@@ -256,10 +256,27 @@ What the numbers and the notes behind them show:
   ("taking lisinopril 10 mg" is correct in the history before a dose increase). The fixes and the
   reasoning are in the commit history, and both runs are graded with the corrected key.
 
+**A cheaper model.** The same 20 visits drafted with `soap-v2` by `claude-haiku-5-5` (effort
+`medium`): 98.6% fact recall, 1.6% distractors (small talk in one note), every draft complete,
+p50 22.4 s, and $0.03 for all 20 drafts, about 0.15 cents a note against Opus's 4.1 cents. Its
+judge labels were lost: the API account's credit ran out mid-run, and the eval crashed before
+saving (it now saves after every note and stops after repeated rejections). Judging Haiku and
+drafting with `claude-sonnet-5-5` are the next runs once there is credit; until then this is a
+comparison on the answer key only. Haiku's notes also exposed two false positives, both fixed:
+the dose check flagged "20 mg (corrected from the initially stated 40 mg)", which documents the
+correction rather than repeating it, and the grader counted "gabapentin not started" as giving
+the patient a relative's drug.
+
+**The safety check on real drafts.** Re-running the current check over the 40 saved `soap-v2`
+drafts (`--recheck-safety`, no model calls) raises no false positives. It flags the "placeholder"
+draft, and one dose: Opus wrote its own "simvastatin is limited to 20 mg with amlodipine" remark
+into a plan where the clinician had just raised the dose to 40 mg.
+
 Twenty visits per prompt is a small sample, so read these as indicative. Cost covers drafting
 only; judging cost another $1.02 and $0.72. Raw data, including every note and every judge label:
 [soap-v1](docs/results/note-eval-opus-5-5-soap-v1.json),
-[soap-v2](docs/results/note-eval-opus-5-5-soap-v2.json).
+[soap-v2](docs/results/note-eval-opus-5-5-soap-v2.json),
+[Haiku](docs/results/note-eval-haiku-5-5-medium.json).
 
 ### Real Claude
 

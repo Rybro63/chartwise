@@ -489,7 +489,8 @@ def visit(record: dict, rng: random.Random) -> dict:
         v.forbid("relative_medication", f"{drug} is the patient's {relative}'s medication",
                  [[drug], ["takes", "taking", "continu", "current", "start", "prescrib", "on "]],
                  unless=RELATIVE_WORDS + ["asked", "question", "not indicated", "not recommend", "would not", "wouldn't",
-                                          "declin", "not appropriate"])
+                                          "declin", "not appropriate", "not start", "not prescrib", "not taking",
+                                          "not on "])
         mentioned_drugs.add(drug)
 
     # Over-the-counter use.

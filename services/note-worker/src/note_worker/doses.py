@@ -108,7 +108,9 @@ def check_sentence(sentence: str, section: str, ev: DoseEvidence,
             continue  # a drug nobody mentioned is already an UNSUPPORTED_MEDICATION
         spoken, record = ev.spoken.get(drug, set()), ev.record.get(drug, set())
         if dose in ev.withdrawn.get(drug, set()) and dose not in spoken:
-            problems.append(DoseProblem(drug, dose, "withdrawn", section))
+            # "20 mg (corrected from the initially stated 40 mg)" documents the correction.
+            if not any(other in spoken for _, other in doses if other != dose):
+                problems.append(DoseProblem(drug, dose, "withdrawn", section))
         elif dose not in spoken and dose not in record:
             problems.append(DoseProblem(drug, dose, "unsupported", section))
         elif (section == "plan" and ev.new.get(drug) and dose not in ev.new[drug] and dose in record

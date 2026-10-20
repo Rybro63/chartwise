@@ -168,6 +168,11 @@
       "EMPTY_SECTION": 3,
       "UNSUPPORTED_STATEMENT": 1
     },
+    "safety_flags_by_code_current_check": {
+      "DOSE_MISMATCH": 1,
+      "EMPTY_SECTION": 3,
+      "UNSUPPORTED_STATEMENT": 1
+    },
     "statements": 396,
     "statements_citing_transcript": 0.9874,
     "statements_from_record_only": 0.0101,
@@ -747,7 +752,37 @@
             "sentence": null
           }
         ]
-      }
+      },
+      "safety_recheck": [
+        {
+          "code": "EMPTY_SECTION",
+          "severity": "low",
+          "subject": "subjective",
+          "message": "The subjective section is empty.",
+          "section": "subjective"
+        },
+        {
+          "code": "EMPTY_SECTION",
+          "severity": "low",
+          "subject": "objective",
+          "message": "The objective section is empty.",
+          "section": "objective"
+        },
+        {
+          "code": "EMPTY_SECTION",
+          "severity": "low",
+          "subject": "plan",
+          "message": "The plan section is empty.",
+          "section": "plan"
+        },
+        {
+          "code": "UNSUPPORTED_STATEMENT",
+          "severity": "medium",
+          "subject": "placeholder",
+          "message": "This statement cites no line of the transcript and no part of the record.",
+          "section": "assessment"
+        }
+      ]
     },
     {
       "encounter_id": "e5a043e3-4b0e-4840-9bca-579622f479e3",
@@ -1159,7 +1194,11 @@
               "would not",
               "wouldn't",
               "declin",
-              "not appropriate"
+              "not appropriate",
+              "not start",
+              "not prescrib",
+              "not taking",
+              "not on "
             ]
           },
           {
@@ -1583,7 +1622,8 @@
             "sentence": null
           }
         ]
-      }
+      },
+      "safety_recheck": []
     },
     {
       "encounter_id": "f438e012-db8d-4534-ac46-36ca4ea41908",
@@ -2182,7 +2222,11 @@
               "would not",
               "wouldn't",
               "declin",
-              "not appropriate"
+              "not appropriate",
+              "not start",
+              "not prescrib",
+              "not taking",
+              "not on "
             ]
           }
         ]
@@ -2733,7 +2777,8 @@
             "sentence": null
           }
         ]
-      }
+      },
+      "safety_recheck": []
     },
     {
       "encounter_id": "50c1a875-2726-4b50-b12c-a1326686e9cb",
@@ -3189,7 +3234,11 @@
               "would not",
               "wouldn't",
               "declin",
-              "not appropriate"
+              "not appropriate",
+              "not start",
+              "not prescrib",
+              "not taking",
+              "not on "
             ]
           },
           {
@@ -3661,7 +3710,8 @@
             "sentence": null
           }
         ]
-      }
+      },
+      "safety_recheck": []
     },
     {
       "encounter_id": "395f2479-7a97-4d99-b18a-91b38b7fdbce",
@@ -4187,7 +4237,11 @@
               "would not",
               "wouldn't",
               "declin",
-              "not appropriate"
+              "not appropriate",
+              "not start",
+              "not prescrib",
+              "not taking",
+              "not on "
             ]
           }
         ]
@@ -4708,7 +4762,8 @@
             "sentence": null
           }
         ]
-      }
+      },
+      "safety_recheck": []
     },
     {
       "encounter_id": "b15a1591-5885-41b0-a144-5ae17a64dac0",
@@ -5094,7 +5149,11 @@
               "would not",
               "wouldn't",
               "declin",
-              "not appropriate"
+              "not appropriate",
+              "not start",
+              "not prescrib",
+              "not taking",
+              "not on "
             ]
           }
         ]
@@ -5430,7 +5489,8 @@
             "sentence": null
           }
         ]
-      }
+      },
+      "safety_recheck": []
     },
     {
       "encounter_id": "68e3f101-1736-4c98-a89c-f3b61439bd70",
@@ -6437,7 +6497,8 @@
             "sentence": null
           }
         ]
-      }
+      },
+      "safety_recheck": []
     },
     {
       "encounter_id": "4c8219ff-661a-4ab9-903f-9365192612f0",
@@ -6920,7 +6981,11 @@
               "would not",
               "wouldn't",
               "declin",
-              "not appropriate"
+              "not appropriate",
+              "not start",
+              "not prescrib",
+              "not taking",
+              "not on "
             ]
           }
         ]
@@ -7402,7 +7467,8 @@
             "sentence": null
           }
         ]
-      }
+      },
+      "safety_recheck": []
     },
     {
       "encounter_id": "8dc2fd9f-9c76-40f0-ae2f-3ace21481e35",
@@ -8372,7 +8438,16 @@
             "sentence": null
           }
         ]
-      }
+      },
+      "safety_recheck": [
+        {
+          "code": "DOSE_MISMATCH",
+          "severity": "high",
+          "subject": "simvastatin 20 mg",
+          "message": "'simvastatin 20 mg' is the previous dose, but the visit changed simvastatin's dose.",
+          "section": "plan"
+        }
+      ]
     },
     {
       "encounter_id": "d9a10a10-6cd6-4cb3-ac6a-e6dce22588c6",
@@ -8666,7 +8741,11 @@
               "would not",
               "wouldn't",
               "declin",
-              "not appropriate"
+              "not appropriate",
+              "not start",
+              "not prescrib",
+              "not taking",
+              "not on "
             ]
           }
         ]
@@ -8939,7 +9018,8 @@
             "sentence": null
           }
         ]
-      }
+      },
+      "safety_recheck": []
     },
     {
       "encounter_id": "6935cd67-636a-4b74-becf-f2d103c8ef56",
@@ -9844,7 +9924,8 @@
             "sentence": null
           }
         ]
-      }
+      },
+      "safety_recheck": []
     },
     {
       "encounter_id": "a77764a7-9efd-4a4b-8d7d-98f318cb808f",
@@ -10775,7 +10856,8 @@
             "sentence": null
           }
         ]
-      }
+      },
+      "safety_recheck": []
     },
     {
       "encounter_id": "7e99772c-4e10-40ad-8144-e023b4387d3b",
@@ -11604,7 +11686,8 @@
             "sentence": null
           }
         ]
-      }
+      },
+      "safety_recheck": []
     },
     {
       "encounter_id": "82cf2d69-b3da-46de-bcdb-191015dda7bc",
@@ -12517,7 +12600,8 @@
             "sentence": null
           }
         ]
-      }
+      },
+      "safety_recheck": []
     },
     {
       "encounter_id": "8219a8b1-47a0-4411-9ac6-7113b6aa0925",
@@ -13005,7 +13089,11 @@
               "would not",
               "wouldn't",
               "declin",
-              "not appropriate"
+              "not appropriate",
+              "not start",
+              "not prescrib",
+              "not taking",
+              "not on "
             ]
           }
         ]
@@ -13445,7 +13533,8 @@
             "sentence": null
           }
         ]
-      }
+      },
+      "safety_recheck": []
     },
     {
       "encounter_id": "d1028485-caef-471e-b6c3-7bfc2d960ef1",
@@ -14454,7 +14543,8 @@
             "sentence": null
           }
         ]
-      }
+      },
+      "safety_recheck": []
     },
     {
       "encounter_id": "76a9b4d6-6da5-4538-913f-6d03ac7f1d91",
@@ -14973,7 +15063,11 @@
               "would not",
               "wouldn't",
               "declin",
-              "not appropriate"
+              "not appropriate",
+              "not start",
+              "not prescrib",
+              "not taking",
+              "not on "
             ]
           }
         ]
@@ -15452,7 +15546,8 @@
             "sentence": null
           }
         ]
-      }
+      },
+      "safety_recheck": []
     },
     {
       "encounter_id": "e72046cd-ac1f-4b7a-81e0-0c645beca917",
@@ -16521,7 +16616,8 @@
             "sentence": null
           }
         ]
-      }
+      },
+      "safety_recheck": []
     },
     {
       "encounter_id": "ed30056e-ed54-431a-ac58-bfd4cad09564",
@@ -17124,7 +17220,8 @@
             "sentence": null
           }
         ]
-      }
+      },
+      "safety_recheck": []
     },
     {
       "encounter_id": "071cd98a-bec8-4a07-b116-a4ba6baad574",
@@ -18100,7 +18197,8 @@
             "sentence": null
           }
         ]
-      }
+      },
+      "safety_recheck": []
     }
   ]
 }

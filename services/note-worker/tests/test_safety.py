@@ -130,6 +130,11 @@ def test_dose_corrected_while_speaking_is_flagged():
     assert flags == [("DOSE_MISMATCH", "simvastatin 40 mg", "plan")]
 
 
+def test_documenting_the_correction_itself_is_fine():
+    # Found in real Claude Haiku 5.5 output.
+    assert dose_flags("Increase simvastatin to 20 mg once daily (corrected from the initially stated 40 mg).") == []
+
+
 def test_plan_keeping_the_previous_dose_after_a_change_is_flagged():
     assert dose_flags("Continue simvastatin 10 mg daily.") == [("DOSE_MISMATCH", "simvastatin 10 mg", "plan")]
 

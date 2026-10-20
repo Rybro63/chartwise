@@ -13,6 +13,11 @@ token usage are recorded alongside, so one run answers "how good, how fast, how 
     .venv/bin/python eval/run_note_eval.py --regrade ../../docs/results/note-eval-fake.json
     # also have the LLM judge label every sentence (judge.py; costs money on a real model)
     .venv/bin/python eval/run_note_eval.py --count 20 --label opus --judge
+    # rebuild a run from encounters already drafted (after a crash), without new drafts
+    .venv/bin/python eval/run_note_eval.py --recover claude-haiku-5-5 --since 2026-10-20T01:04:00Z --label haiku
+
+The results file is written after the drafts are collected and again after every judgement, so
+an interrupted run keeps what it paid for.
 
 Results go to docs/results/note-eval-<label>.json. The notes are synthetic, so the file keeps
 them for review.
@@ -96,7 +101,36 @@ def collect(visits: list[dict]) -> tuple[list[dict], dict]:
     print(f"submitted {len(ids)} encounters; waiting for drafts...")
     lib.wait_until(lambda: lib.drafting_count(ids) == 0, timeout=1800, interval=5)
     usage = usage_since(before)
+    return fetch_rows(ids, visits, clinician), usage
 
+
+def recover(model: str, since: str, visits: list[dict]) -> tuple[list[dict], dict]:
+    """Rows for encounters already drafted by a model since a time, matched to their visits by
+    transcript, with token usage from Prometheus over the same window."""
+    ids = [r[0] for r in lib.psql(f"""
+        select e.id from encounter e join note_version v on v.encounter_id = e.id and v.version = 1
+        where v.model = '{model}' and e.created_at >= '{since}' order by e.created_at""")]
+    clinician = lib.login("clinician")
+    by_transcript = {v["transcript"]: v for v in visits}
+    transcripts = [lib.http("GET", f"{lib.API}/api/encounters/{i}", token=clinician)["transcript"] for i in ids]
+    window = int(time.time() - datetime.fromisoformat(since.replace("Z", "+00:00")).timestamp()) + 60
+    url = f"{lib.PROM}/api/v1/query?" + urllib.parse.urlencode(
+        {"query": f'sum by (client, model, type) (increase(llm_gateway_tokens_total{{model="{model}"}}[{window}s]))'})
+    usage: dict[str, dict] = {}
+    for r in lib.http("GET", url)["data"]["result"]:
+        m = r["metric"]
+        u = usage.setdefault(f"{m['client']}/{m['model']}", {"client": m["client"], "model": m["model"],
+                                                            "input_tokens": 0, "output_tokens": 0})
+        u[f"{m['type']}_tokens"] += round(float(r["value"][1]))
+    for u in usage.values():
+        price = PRICES.get(u["model"])
+        u["estimated_cost_usd"] = (round(u["input_tokens"] / 1e6 * price[0] + u["output_tokens"] / 1e6 * price[1], 4)
+                                   if price else None)
+    print(f"recovered {len(ids)} encounters drafted by {model}")
+    return fetch_rows(ids, [by_transcript[t] for t in transcripts], clinician), usage
+
+
+def fetch_rows(ids: list[str], visits: list[dict], clinician: str) -> list[dict]:
     rows = []
     for encounter_id, visit in zip(ids, visits):
         d = lib.http("GET", f"{lib.API}/api/encounters/{encounter_id}", token=clinician)
@@ -114,24 +148,37 @@ def collect(visits: list[dict]) -> tuple[list[dict], dict]:
             # What the model saw of the record (synthetic), for the judge and for review.
             "record": lib.http("GET", f"{lib.API}/api/encounters/{encounter_id}/patient-context", token=clinician),
         })
-    return rows, usage
+    return rows
 
 
-def run_judge(rows: list[dict], model: str, only_missing: bool = False) -> dict:
+def run_judge(rows: list[dict], model: str, only_missing: bool = False, checkpoint=lambda: None) -> dict:
+    from note_worker.errors import GatewayRejected, WorkerError
     from note_worker.gateway_client import GatewayClient
 
     client = GatewayClient(GATEWAY, JUDGE_CLIENT, deadline_s=300, retry_budget_s=900)
     before = token_counters()
     todo = [r for r in rows if r["note"] and not (only_missing and "sentences" in r.get("judge", {}))]
+    rejected_in_a_row = 0
     for i, row in enumerate(todo):
         for attempt in (1, 2):  # one retry: a reply that skips sentences is usually a one-off
             try:
                 row["judge"] = judging.judge(client, request_id=row["encounter_id"], note=row["note"],
                                              transcript=row["transcript"], record=row["record"], model=model).to_dict()
+                rejected_in_a_row = 0
                 break
             except judging.JudgeError as e:
                 row["judge"] = {"error": str(e), "attempts": attempt}
+            except WorkerError as e:
+                row["judge"] = {"error": e.safe_reason, "attempts": attempt}
+                rejected_in_a_row += isinstance(e, GatewayRejected)
+                break
+        checkpoint()
         print(f"  judged {i + 1}", end="\r", flush=True)
+        if rejected_in_a_row >= 3:
+            # Several permanent rejections in a row is the account or the request, not one note
+            # (a spent credit balance looks like this); stop instead of paying for nothing.
+            print(f"\nstopping: the gateway rejected {rejected_in_a_row} judge calls in a row")
+            break
     client.close()
     print()
     return usage_since(before)
@@ -141,6 +188,26 @@ def judge_summary(rows: list[dict]) -> dict:
     verdicts = [judging.Verdict(r["judge"]["sentences"], r["judge"]["omissions"], r["judge"]["model"])
                 for r in rows if r.get("judge") and "sentences" in r["judge"]]
     return {**judging.summarise(verdicts), "judge_errors": sum(1 for r in rows if r.get("judge", {}).get("error"))}
+
+
+def recheck_safety(rows: list[dict]) -> None:
+    """Re-runs the current safety check on saved soap-v2 drafts (rebuilt from their evidence), so
+    a change to the check can be measured on real model output without new model calls."""
+    from note_worker import safety
+    from note_worker.soap import SoapDraft
+
+    for row in rows:
+        detail = row.get("draft_detail")
+        if not detail or not row.get("record"):
+            continue
+        draft = SoapDraft.model_validate({
+            **{section: [{"text": e["text"], "transcript_lines": e["lines"], "from_record": e["fromRecord"]}
+                         for e in detail["evidence"] if e["section"] == section]
+               for section in ("subjective", "objective", "assessment", "plan")},
+            "medications_mentioned": detail["medications"]})
+        row["safety_recheck"] = [f.to_event() for f in safety.check(
+            draft, transcript=row["transcript"], record_medications=row["record"]["medications"],
+            allergies=row["record"]["allergies"])]
 
 
 def report(rows: list[dict], usage: dict, label: str) -> dict:
@@ -162,6 +229,8 @@ def report(rows: list[dict], usage: dict, label: str) -> dict:
         **summarise(grades),
         "safety_flagged_notes": sum(1 for r in rows if any(f["severity"] == "high" for f in r["safety_flags"])),
         "safety_flags_by_code": dict(sorted(Counter(f["code"] for r in rows for f in r["safety_flags"]).items())),
+        **({"safety_flags_by_code_current_check": dict(sorted(Counter(
+            f["code"] for r in rows for f in r["safety_recheck"]).items()))} if any("safety_recheck" in r for r in rows) else {}),
         **sourcing(rows),
         "draft_seconds_p50": round(statistics.median(latencies), 1) if latencies else None,
         "draft_seconds_p95": round(percentile(latencies, 0.95), 1) if latencies else None,
@@ -196,6 +265,8 @@ def print_summary(summary: dict) -> None:
         print(f"statements: {summary['statements']}, citing the transcript {summary['statements_citing_transcript']:.1%}, "
               f"record only {summary['statements_from_record_only']:.1%}, unsourced {summary['statements_unsourced']:.1%}")
     print(f"safety flags: {summary['safety_flags_by_code'] or 'none'}")
+    if "safety_flags_by_code_current_check" in summary:
+        print(f"safety flags from the current check: {summary['safety_flags_by_code_current_check'] or 'none'}")
     if "judge" in summary:
         j = summary["judge"]
         print(f"judge ({', '.join(j['judge_models'])}): {j['sentences']} sentences, {j['unsupported_rate']:.1%} unsupported, "
@@ -217,6 +288,10 @@ def main() -> None:
     ap.add_argument("--label", default="run")
     ap.add_argument("--regrade", help="re-grade a saved results file instead of running visits")
     ap.add_argument("--facts", help="with --regrade: take answer keys from this visits file (matched by transcript)")
+    ap.add_argument("--recover", metavar="MODEL", help="rebuild a run from encounters this model already drafted")
+    ap.add_argument("--since", help="with --recover: only encounters created at or after this ISO time")
+    ap.add_argument("--recheck-safety", action="store_true",
+                    help="with --regrade: re-run the current safety check on the saved drafts")
     ap.add_argument("--judge", action="store_true", help="have the LLM judge label every note sentence")
     ap.add_argument("--judge-model", default=judging.JUDGE_MODEL)
     args = ap.parse_args()
@@ -236,6 +311,12 @@ def main() -> None:
             keys = {v["transcript"]: v["facts"] for v in json.loads(Path(args.facts).read_text())}
             for row in rows:
                 row["facts"] = keys[row["transcript"]]
+        if args.recheck_safety:
+            recheck_safety(rows)
+    elif args.recover:
+        rows, usage = recover(args.recover, args.since, json.loads(Path(args.visits).read_text()))
+        label = args.label
+        path = lib.RESULTS / f"note-eval-{label}.json"
     else:
         visits = json.loads(Path(args.visits).read_text())[args.offset: args.offset + args.count]
         if not visits or "facts" not in visits[0]:
@@ -244,18 +325,23 @@ def main() -> None:
         label = args.label
         path = lib.RESULTS / f"note-eval-{label}.json"
 
+    def checkpoint() -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({"summary": report(rows, usage, label), "notes": rows}, indent=2) + "\n")
+
+    checkpoint()
     if args.judge:
         print("judging...")
         if args.regrade:
             # Only notes without a judgement (a failed reply); their cost adds to the saved total.
-            for key, u in run_judge(rows, args.judge_model, only_missing=True).items():
+            for key, u in run_judge(rows, args.judge_model, only_missing=True, checkpoint=checkpoint).items():
                 total = usage.setdefault(key, {**u, "input_tokens": 0, "output_tokens": 0, "estimated_cost_usd": 0.0})
                 for field in ("input_tokens", "output_tokens"):
                     total[field] += u[field]
                 total["estimated_cost_usd"] = round((total["estimated_cost_usd"] or 0) + (u["estimated_cost_usd"] or 0), 4)
         else:
             usage = {k: u for k, u in usage.items() if u["client"] != JUDGE_CLIENT}
-            usage.update(run_judge(rows, args.judge_model))
+            usage.update(run_judge(rows, args.judge_model, checkpoint=checkpoint))
     summary = report(rows, usage, label)
     if args.regrade:
         kept = ("draft_seconds_p50", "draft_seconds_p95")
