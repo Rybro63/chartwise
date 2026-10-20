@@ -51,12 +51,14 @@ flowchart LR
    conditions, medications, allergies, but no name or identifiers) over an authenticated, audited
    internal API, and calls the gateway over gRPC.
 4. The gateway admits the call (Redis token bucket), checks the circuit breaker, and calls Claude
-   with a JSON-schema structured output for the SOAP note, retrying transient failures.
+   with a JSON-schema structured output for the SOAP note, retrying transient failures. Every
+   statement in the note cites the numbered transcript lines it came from.
 5. The worker validates the note, runs the safety check and publishes `note.drafted`. Its offset
    is committed once Kafka has acknowledged that draft and every earlier message on the partition.
 6. The encounter service stores the draft as version 1 and the encounter enters the review queue.
-7. Every save in the review app is a new version. Approval is limited to clinicians, and only for
-   the version they are looking at.
+7. Every save in the review app is a new version. "Show sources" highlights the transcript lines
+   behind any sentence and marks sentences with no source. Approval is limited to clinicians, and
+   only for the version they are looking at.
 8. `note.approved` (through the outbox) triggers an idempotent conditional create of a FHIR
    `DocumentReference`, and the encounter becomes `FILED`.
 
@@ -206,6 +208,47 @@ distractors (small talk in all 20 notes, the corrected dose, the declined drug a
 That is the failure profile of a model that copies instead of documenting
 ([note-eval-fake.json](docs/results/note-eval-fake.json), 20 visits).
 
+An [LLM judge](services/note-worker/eval/judge.py) (`--judge`) checks everything the answer key
+didn't plant: it labels every sentence of a note as supported, unsupported or contradicted by the
+transcript and record, and lists what the note left out. It runs through the gateway on a fixed
+model, so the drafting model can change while the judge doesn't. How far to trust the judge is
+itself measured, against a clinician's labels on the same sentences
+([gold.py](services/note-worker/eval/gold.py)).
+
+**Real Claude, before and after source links.** The same 20 visits, drafted by `claude-opus-5-5`
+and judged by `claude-opus-5-5`:
+
+| Prompt | Fact recall | Distractors included | Judge: unsupported | Judge: contradicted | Unsourced statements | Draft p50 / p95 | Cost per note |
+|---|---|---|---|---|---|---|---|
+| `soap-v1` (plain sections) | 100% | 7.9% (5 notes) | 0.9% of 800 sentences (6 notes) | 0.2% (1 note) | n/a | 23.1 s / 37.9 s | $0.032 |
+| `soap-v2` (every statement cites transcript lines) | 94.2% (99.2% without one failed draft) | 7.9% (5 notes) | 0.4% of 532 sentences (2 notes) | 0% | 0.2% | 27.9 s / 38.9 s | $0.041 |
+
+What the numbers and the notes behind them show:
+
+- **Asking for sources made the notes tighter.** `soap-v2` notes are about a quarter shorter (216
+  words against 286), with half the unsupported sentences and no contradictions. What `soap-v1`
+  added on its own was clinical reasoning nobody voiced, such as "flag for clinician review given
+  concurrent lisinopril use" or an adherence explanation for a high blood pressure. 98.7% of
+  `soap-v2` statements cite transcript lines, which is what the review app's
+  [source view](#one-encounter-end-to-end) shows.
+- **Both prompts still include small talk** (a trip to Phoenix, a new puppy) in 4 of 20 notes, and
+  both added the same unprompted drug-interaction remark (simvastatin dose limit with amlodipine).
+  Neither dropped a stopped drug, started a declined one, or attributed a relative's medication to
+  the patient.
+- **One `soap-v2` draft came back empty.** The model returned valid JSON whose only statement was
+  "placeholder", and it reached the review queue with nothing but low-severity empty-section flags.
+  That one draft accounts for the recall drop and all the judge's omissions. The worker now
+  rejects and retries a draft like that (see below).
+- **The first grading was wrong, not the model.** The first pass scored `soap-v1` at 36.5%
+  distractors; reading every flagged sentence showed most were the grader's false positives
+  ("taking lisinopril 10 mg" is correct in the history before a dose increase). The fixes and the
+  reasoning are in the commit history, and both runs are graded with the corrected key.
+
+Twenty visits per prompt is a small sample, so read these as indicative. Cost covers drafting
+only; judging cost another $1.02 and $0.72. Raw data, including every note and every judge label:
+[soap-v1](docs/results/note-eval-opus-5-5-soap-v1.json),
+[soap-v2](docs/results/note-eval-opus-5-5-soap-v2.json).
+
 ### Real Claude
 
 `chaos/live_claude.py`: the same 20 synthetic visits sent through the whole pipeline with the
@@ -331,8 +374,10 @@ docs/results/          Measured results (JSON + charts)
 
 ## Known limitations
 
-- Load, chaos and eval results use the fake LLM. Real Claude was measured only on 20 visits, and
-  draft quality was checked by the safety check and by reading the notes, not by clinicians.
+- Load, chaos and safety-eval results use the fake LLM. Real Claude was measured on 20-visit
+  samples. Note quality is graded against synthetic answer keys and by an LLM judge whose
+  agreement with a clinician is measured separately (gold set), not by clinicians reviewing
+  every note.
 - Each gateway replica has its own circuit breaker (the rate limit is shared through Redis).
 - Local Kafka is a single broker, and the AWS plan keeps Kafka in-cluster to control cost.
 - Transcript keys come from configuration; production would use a KMS with envelope encryption.

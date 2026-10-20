@@ -117,12 +117,13 @@ def collect(visits: list[dict]) -> tuple[list[dict], dict]:
     return rows, usage
 
 
-def run_judge(rows: list[dict], model: str) -> dict:
+def run_judge(rows: list[dict], model: str, only_missing: bool = False) -> dict:
     from note_worker.gateway_client import GatewayClient
 
     client = GatewayClient(GATEWAY, JUDGE_CLIENT, deadline_s=300, retry_budget_s=900)
     before = token_counters()
-    for i, row in enumerate(r for r in rows if r["note"]):
+    todo = [r for r in rows if r["note"] and not (only_missing and "sentences" in r.get("judge", {}))]
+    for i, row in enumerate(todo):
         for attempt in (1, 2):  # one retry: a reply that skips sentences is usually a one-off
             try:
                 row["judge"] = judging.judge(client, request_id=row["encounter_id"], note=row["note"],
@@ -245,8 +246,16 @@ def main() -> None:
 
     if args.judge:
         print("judging...")
-        usage = {k: u for k, u in usage.items() if u["client"] != JUDGE_CLIENT}
-        usage.update(run_judge(rows, args.judge_model))
+        if args.regrade:
+            # Only notes without a judgement (a failed reply); their cost adds to the saved total.
+            for key, u in run_judge(rows, args.judge_model, only_missing=True).items():
+                total = usage.setdefault(key, {**u, "input_tokens": 0, "output_tokens": 0, "estimated_cost_usd": 0.0})
+                for field in ("input_tokens", "output_tokens"):
+                    total[field] += u[field]
+                total["estimated_cost_usd"] = round((total["estimated_cost_usd"] or 0) + (u["estimated_cost_usd"] or 0), 4)
+        else:
+            usage = {k: u for k, u in usage.items() if u["client"] != JUDGE_CLIENT}
+            usage.update(run_judge(rows, args.judge_model))
     summary = report(rows, usage, label)
     if args.regrade:
         kept = ("draft_seconds_p50", "draft_seconds_p95")

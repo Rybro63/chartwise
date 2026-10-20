@@ -181,9 +181,9 @@
       {
         "client": "note-eval-judge",
         "model": "claude-opus-5-5",
-        "input_tokens": 63033,
-        "output_tokens": 34668,
-        "estimated_cost_usd": 0.9455
+        "input_tokens": 70559,
+        "output_tokens": 37048,
+        "estimated_cost_usd": 1.0232
       }
     ],
     "judge": {
@@ -191,15 +191,15 @@
       "judge_models": [
         "claude-opus-5-5"
       ],
-      "notes_judged": 19,
-      "sentences": 749,
-      "supported_rate": 0.988,
-      "unsupported_rate": 0.0093,
-      "contradicted_rate": 0.0027,
+      "notes_judged": 20,
+      "sentences": 800,
+      "supported_rate": 0.9888,
+      "unsupported_rate": 0.0088,
+      "contradicted_rate": 0.0025,
       "notes_with_contradiction": 1,
       "notes_with_unsupported": 6,
       "omissions_per_note": 0.0,
-      "judge_errors": 1
+      "judge_errors": 0
     }
   },
   "notes": [
@@ -2030,7 +2030,519 @@
         ]
       },
       "judge": {
-        "error": "judge labelled 1 of 51 sentences"
+        "model": "claude-opus-5-5",
+        "counts": {
+          "supported": 51,
+          "unsupported": 0,
+          "contradicted": 0
+        },
+        "omissions": [],
+        "sentences": [
+          {
+            "n": 1,
+            "section": "subjective",
+            "text": "46-year-old female presenting for blood pressure follow-up.",
+            "label": "supported",
+            "lines": [
+              5
+            ],
+            "reason": "Age/sex from record; visit for BP follow-up."
+          },
+          {
+            "n": 2,
+            "section": "subjective",
+            "text": "She reports morning headaches located at the back of her head.",
+            "label": "supported",
+            "lines": [
+              7
+            ],
+            "reason": "Patient reports morning headaches at back of head."
+          },
+          {
+            "n": 3,
+            "section": "subjective",
+            "text": "She denies chest pain and shortness of breath.",
+            "label": "supported",
+            "lines": [
+              8,
+              9
+            ],
+            "reason": "Denies chest pain and shortness of breath."
+          },
+          {
+            "n": 4,
+            "section": "subjective",
+            "text": "Medications reviewed:",
+            "label": "supported",
+            "lines": [
+              10
+            ],
+            "reason": "Medication review initiated."
+          },
+          {
+            "n": 5,
+            "section": "subjective",
+            "text": "Lisinopril 10 mg: taking every morning.",
+            "label": "supported",
+            "lines": [
+              14,
+              15
+            ],
+            "reason": "Lisinopril 10 mg taken every morning."
+          },
+          {
+            "n": 6,
+            "section": "subjective",
+            "text": "Metformin 500 mg: taking most days but sometimes forgets evening doses.",
+            "label": "supported",
+            "lines": [
+              18,
+              19,
+              20
+            ],
+            "reason": "Metformin 500 mg most days, forgets at night."
+          },
+          {
+            "n": 7,
+            "section": "subjective",
+            "text": "Her daughter, present at the visit, states evening doses are frequently missed.",
+            "label": "supported",
+            "lines": [
+              21
+            ],
+            "reason": "Daughter says evening doses often forgotten."
+          },
+          {
+            "n": 8,
+            "section": "subjective",
+            "text": "Combined oral contraceptive: stopped some time ago after reading concerning information online.",
+            "label": "supported",
+            "lines": [
+              11,
+              12
+            ],
+            "reason": "Stopped pill after reading something online."
+          },
+          {
+            "n": 9,
+            "section": "subjective",
+            "text": "Acetaminophen (OTC): taking most days.",
+            "label": "supported",
+            "lines": [
+              25
+            ],
+            "reason": "OTC acetaminophen most days."
+          },
+          {
+            "n": 10,
+            "section": "subjective",
+            "text": "Gabapentin: asked whether she should take it because her husband uses it.",
+            "label": "supported",
+            "lines": [
+              23
+            ],
+            "reason": "Asked about husband's gabapentin."
+          },
+          {
+            "n": 11,
+            "section": "subjective",
+            "text": "She also reports a persistent dry cough since a cold last month.",
+            "label": "supported",
+            "lines": [
+              37
+            ],
+            "reason": "Dry cough since cold last month."
+          },
+          {
+            "n": 12,
+            "section": "subjective",
+            "text": "Latex allergy confirmed.",
+            "label": "supported",
+            "lines": [
+              26,
+              27
+            ],
+            "reason": "Latex allergy confirmed."
+          },
+          {
+            "n": 13,
+            "section": "objective",
+            "text": "Vitals: BP 149/98 mmHg, repeat 143/95 mmHg.",
+            "label": "supported",
+            "lines": [
+              29,
+              32
+            ],
+            "reason": "BP values match."
+          },
+          {
+            "n": 14,
+            "section": "objective",
+            "text": "HR 95.",
+            "label": "supported",
+            "lines": [
+              29
+            ],
+            "reason": "HR 95."
+          },
+          {
+            "n": 15,
+            "section": "objective",
+            "text": "Temp 98.4 F.",
+            "label": "supported",
+            "lines": [
+              29
+            ],
+            "reason": "Temp 98.4."
+          },
+          {
+            "n": 16,
+            "section": "objective",
+            "text": "Respiratory rate, SpO2 and weight not documented.",
+            "label": "supported",
+            "lines": [],
+            "reason": "These were not stated; true."
+          },
+          {
+            "n": 17,
+            "section": "objective",
+            "text": "Cardiovascular: regular rhythm, no murmurs.",
+            "label": "supported",
+            "lines": [
+              33
+            ],
+            "reason": "Regular rhythm, no murmurs."
+          },
+          {
+            "n": 18,
+            "section": "objective",
+            "text": "No ankle edema.",
+            "label": "supported",
+            "lines": [
+              33
+            ],
+            "reason": "No ankle swelling."
+          },
+          {
+            "n": 19,
+            "section": "objective",
+            "text": "Lungs: clear per clinician.",
+            "label": "supported",
+            "lines": [
+              38
+            ],
+            "reason": "Lungs sound clear."
+          },
+          {
+            "n": 20,
+            "section": "objective",
+            "text": "No labs resulted during the visit.",
+            "label": "supported",
+            "lines": [],
+            "reason": "No labs resulted; true."
+          },
+          {
+            "n": 21,
+            "section": "assessment",
+            "text": "1.",
+            "label": "supported",
+            "lines": [],
+            "reason": "Numbering."
+          },
+          {
+            "n": 22,
+            "section": "assessment",
+            "text": "Essential hypertension, above goal: BP 149/98, repeat 143/95, on lisinopril 10 mg daily, with reported morning occipital headaches.",
+            "label": "supported",
+            "lines": [
+              5,
+              7,
+              14,
+              29,
+              30,
+              32
+            ],
+            "reason": "Consistent with BP readings, med, headaches."
+          },
+          {
+            "n": 23,
+            "section": "assessment",
+            "text": "No chest pain or dyspnea.",
+            "label": "supported",
+            "lines": [
+              8,
+              9
+            ],
+            "reason": "Denied chest pain/dyspnea."
+          },
+          {
+            "n": 24,
+            "section": "assessment",
+            "text": "2.",
+            "label": "supported",
+            "lines": [],
+            "reason": "Numbering."
+          },
+          {
+            "n": 25,
+            "section": "assessment",
+            "text": "Type 2 diabetes mellitus on metformin, with some missed evening doses per patient and daughter.",
+            "label": "supported",
+            "lines": [
+              18,
+              19,
+              21
+            ],
+            "reason": "T2DM in record; missed evening doses reported."
+          },
+          {
+            "n": 26,
+            "section": "assessment",
+            "text": "3.",
+            "label": "supported",
+            "lines": [],
+            "reason": "Numbering."
+          },
+          {
+            "n": 27,
+            "section": "assessment",
+            "text": "Persistent dry cough after a cold last month.",
+            "label": "supported",
+            "lines": [
+              37
+            ],
+            "reason": "Cough after cold last month."
+          },
+          {
+            "n": 28,
+            "section": "assessment",
+            "text": "Lungs clear;",
+            "label": "supported",
+            "lines": [
+              38
+            ],
+            "reason": "Lungs clear."
+          },
+          {
+            "n": 29,
+            "section": "assessment",
+            "text": "the clinician expects it to resolve.",
+            "label": "supported",
+            "lines": [
+              38
+            ],
+            "reason": "Doctor said it should settle."
+          },
+          {
+            "n": 30,
+            "section": "assessment",
+            "text": "4.",
+            "label": "supported",
+            "lines": [],
+            "reason": "Numbering."
+          },
+          {
+            "n": 31,
+            "section": "assessment",
+            "text": "Combined oral contraceptive self-discontinued by the patient;",
+            "label": "supported",
+            "lines": [
+              12
+            ],
+            "reason": "Patient stopped pill herself."
+          },
+          {
+            "n": 32,
+            "section": "assessment",
+            "text": "the clinician agreed to leave it off for now.",
+            "label": "supported",
+            "lines": [
+              13
+            ],
+            "reason": "Doctor agreed to leave it off."
+          },
+          {
+            "n": 33,
+            "section": "plan",
+            "text": "1.",
+            "label": "supported",
+            "lines": [],
+            "reason": "Numbering."
+          },
+          {
+            "n": 34,
+            "section": "plan",
+            "text": "Hypertension: Increase lisinopril from 10 mg to 20 mg once daily.",
+            "label": "supported",
+            "lines": [
+              16
+            ],
+            "reason": "Increase to 20 mg daily."
+          },
+          {
+            "n": 35,
+            "section": "plan",
+            "text": "The clinician first said 40 mg and immediately corrected to 20 mg.",
+            "label": "supported",
+            "lines": [
+              16
+            ],
+            "reason": "Said 40 then corrected to 20."
+          },
+          {
+            "n": 36,
+            "section": "plan",
+            "text": "Order a basic metabolic panel for kidney function and electrolytes.",
+            "label": "supported",
+            "lines": [
+              35
+            ],
+            "reason": "BMP ordered."
+          },
+          {
+            "n": 37,
+            "section": "plan",
+            "text": "Counseled to reduce dietary salt and keep a home BP log.",
+            "label": "supported",
+            "lines": [
+              36
+            ],
+            "reason": "Salt reduction and home log."
+          },
+          {
+            "n": 38,
+            "section": "plan",
+            "text": "2.",
+            "label": "supported",
+            "lines": [],
+            "reason": "Numbering."
+          },
+          {
+            "n": 39,
+            "section": "plan",
+            "text": "Diabetes: Continue metformin 500 mg.",
+            "label": "supported",
+            "lines": [
+              20
+            ],
+            "reason": "Stay on 500 mg."
+          },
+          {
+            "n": 40,
+            "section": "plan",
+            "text": "Evening adherence discussed.",
+            "label": "supported",
+            "lines": [
+              19,
+              21,
+              22
+            ],
+            "reason": "Evening missed doses raised in visit."
+          },
+          {
+            "n": 41,
+            "section": "plan",
+            "text": "3.",
+            "label": "supported",
+            "lines": [],
+            "reason": "Numbering."
+          },
+          {
+            "n": 42,
+            "section": "plan",
+            "text": "Oral contraceptive: Remains off (Trinessa) per the patient's discontinuation;",
+            "label": "supported",
+            "lines": [
+              12,
+              13
+            ],
+            "reason": "Trinessa in record; left off."
+          },
+          {
+            "n": 43,
+            "section": "plan",
+            "text": "reassess as needed.",
+            "label": "supported",
+            "lines": [
+              13
+            ],
+            "reason": "See how she does."
+          },
+          {
+            "n": 44,
+            "section": "plan",
+            "text": "4.",
+            "label": "supported",
+            "lines": [],
+            "reason": "Numbering."
+          },
+          {
+            "n": 45,
+            "section": "plan",
+            "text": "Dry cough: Honey and fluids;",
+            "label": "supported",
+            "lines": [
+              38
+            ],
+            "reason": "Honey and fluids."
+          },
+          {
+            "n": 46,
+            "section": "plan",
+            "text": "patient to report if it does not resolve.",
+            "label": "supported",
+            "lines": [
+              38
+            ],
+            "reason": "Tell if it doesn't go away."
+          },
+          {
+            "n": 47,
+            "section": "plan",
+            "text": "5.",
+            "label": "supported",
+            "lines": [],
+            "reason": "Numbering."
+          },
+          {
+            "n": 48,
+            "section": "plan",
+            "text": "Gabapentin: Patient asked about it;",
+            "label": "supported",
+            "lines": [
+              23
+            ],
+            "reason": "Patient asked about gabapentin."
+          },
+          {
+            "n": 49,
+            "section": "plan",
+            "text": "advised it would not help her and was not started.",
+            "label": "supported",
+            "lines": [
+              24
+            ],
+            "reason": "Doctor said it wouldn't help."
+          },
+          {
+            "n": 50,
+            "section": "plan",
+            "text": "6.",
+            "label": "supported",
+            "lines": [],
+            "reason": "Numbering."
+          },
+          {
+            "n": 51,
+            "section": "plan",
+            "text": "Follow-up: Return in 3 months, sooner if symptoms worsen.",
+            "label": "supported",
+            "lines": [
+              39
+            ],
+            "reason": "Return 3 months, sooner if worse."
+          }
+        ]
       },
       "grade": {
         "recall": 1.0,
