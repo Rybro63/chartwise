@@ -66,3 +66,49 @@ func TestBucketsArePerClient(t *testing.T) {
 		t.Fatalf("one client's usage must not drain another's bucket")
 	}
 }
+
+func TestAllowNTakesTheCostOrNothing(t *testing.T) {
+	mr := miniredis.RunT(t)
+	mr.SetTime(time.Unix(1_700_000_000, 0))
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	t.Cleanup(func() { _ = rdb.Close() })
+	tb := New(rdb, 1000, 10).WithPrefix("test:tokens:") // 1,000 tokens, 10 per second
+	ctx := context.Background()
+
+	if d, _ := tb.AllowN(ctx, "worker", 800); !d.Allowed {
+		t.Fatal("800 of 1000 should be allowed")
+	}
+	d, _ := tb.AllowN(ctx, "worker", 300)
+	if d.Allowed {
+		t.Fatal("300 more should not fit in the remaining 200")
+	}
+	if d.RetryAfter != 10*time.Second {
+		t.Fatalf("retry-after = %v, want 10s for the missing 100 tokens at 10/s", d.RetryAfter)
+	}
+}
+
+func TestAdjustSettlesDebtAndRefunds(t *testing.T) {
+	mr := miniredis.RunT(t)
+	mr.SetTime(time.Unix(1_700_000_000, 0))
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	t.Cleanup(func() { _ = rdb.Close() })
+	tb := New(rdb, 1000, 10)
+	ctx := context.Background()
+
+	_, _ = tb.AllowN(ctx, "worker", 500)
+	// The call used 1,200 more than reserved: the bucket goes 700 into debt.
+	if err := tb.Adjust(ctx, "worker", 1200); err != nil {
+		t.Fatal(err)
+	}
+	if d, _ := tb.AllowN(ctx, "worker", 1); d.Allowed || d.RetryAfter != 70100*time.Millisecond {
+		t.Fatalf("in debt: allowed=%v retry=%v, want rejected with 70.1s", d.Allowed, d.RetryAfter)
+	}
+	// A refund can't push the bucket past capacity.
+	_ = tb.Adjust(ctx, "worker", -5000)
+	if d, _ := tb.AllowN(ctx, "worker", 1000); !d.Allowed {
+		t.Fatal("refund should have restored a full bucket")
+	}
+	if d, _ := tb.AllowN(ctx, "worker", 1); d.Allowed {
+		t.Fatal("bucket can't hold more than its capacity")
+	}
+}

@@ -91,11 +91,20 @@ func run(log *slog.Logger) error {
 		m.BreakerState.Set(float64(to))
 	})
 
+	requests := ratelimit.New(rdb, float("RATE_LIMIT_BURST", 20), float("RATE_LIMIT_PER_SECOND", 10))
+	// Providers also limit tokens per minute; 0 leaves the token budget off.
+	var tokens server.TokenLimiter
+	if perMinute := float("TOKEN_LIMIT_PER_MINUTE", 0); perMinute > 0 {
+		tokens = ratelimit.New(rdb, float("TOKEN_LIMIT_BURST", perMinute), perMinute/60).WithPrefix("chartwise:tokenlimit:")
+	}
+
 	srv := &server.Server{
-		Provider:      chaos,
-		AllowedModels: allowed,
-		Limiter:       ratelimit.New(rdb, float("RATE_LIMIT_BURST", 20), float("RATE_LIMIT_PER_SECOND", 10)),
-		Breaker:       br,
+		Provider:             chaos,
+		AllowedModels:        allowed,
+		Limiter:              requests,
+		TokenLimiter:         tokens,
+		ExpectedOutputTokens: integer("EXPECTED_OUTPUT_TOKENS", 2000),
+		Breaker:              br,
 		Retry: retry.Policy{
 			MaxAttempts: integer("RETRY_MAX_ATTEMPTS", 4),
 			Base:        duration("RETRY_BASE_DELAY", 250*time.Millisecond),

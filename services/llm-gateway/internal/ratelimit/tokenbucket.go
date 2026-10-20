@@ -4,6 +4,9 @@
 // refill-and-take step runs as one Lua script, which Redis executes atomically, so concurrent
 // requests can't both spend the last token. The clock is Redis's own TIME, so gateway replicas
 // with skewed clocks still agree on how many tokens have refilled.
+//
+// The same bucket serves two budgets: requests (cost 1 each) and LLM tokens (cost = an estimate
+// of the call's tokens, settled with Adjust once the real usage is known).
 package ratelimit
 
 import (
@@ -18,6 +21,7 @@ const script = `
 local capacity = tonumber(ARGV[1])
 local rate = tonumber(ARGV[2])      -- tokens per second
 local cost = tonumber(ARGV[3])
+local force = ARGV[4] == '1'        -- settle: subtract (or refund) unconditionally, debt allowed
 local t = redis.call('TIME')
 local now = tonumber(t[1]) * 1000 + math.floor(tonumber(t[2]) / 1000)
 
@@ -32,7 +36,10 @@ end
 tokens = math.min(capacity, tokens + math.max(0, now - ts) * rate / 1000)
 local allowed = 0
 local retry_ms = 0
-if tokens >= cost then
+if force then
+  tokens = math.min(capacity, tokens - cost)
+  allowed = 1
+elseif tokens >= cost then
   tokens = tokens - cost
   allowed = 1
 else
@@ -68,10 +75,34 @@ func New(rdb redis.UniversalClient, capacity, ratePerSecond float64) *TokenBucke
 	}
 }
 
+// WithPrefix returns a limiter over separate buckets, so one Redis can hold several budgets.
+func (b *TokenBucket) WithPrefix(prefix string) *TokenBucket {
+	c := *b
+	c.prefix = prefix
+	return &c
+}
+
+// Capacity is the most a single take can ever cost.
+func (b *TokenBucket) Capacity() float64 { return b.capacity }
+
 func (b *TokenBucket) Allow(ctx context.Context, key string) (Decision, error) {
-	res, err := b.script.Run(ctx, b.rdb, []string{b.prefix + key}, b.capacity, b.rate, 1).Int64Slice()
+	return b.AllowN(ctx, key, 1)
+}
+
+// AllowN takes cost tokens if the bucket holds them.
+func (b *TokenBucket) AllowN(ctx context.Context, key string, cost float64) (Decision, error) {
+	res, err := b.script.Run(ctx, b.rdb, []string{b.prefix + key}, b.capacity, b.rate, cost, 0).Int64Slice()
 	if err != nil {
 		return Decision{}, fmt.Errorf("token bucket: %w", err)
 	}
 	return Decision{Allowed: res[0] == 1, RetryAfter: time.Duration(res[1]) * time.Millisecond}, nil
+}
+
+// Adjust settles a reservation: a positive delta takes more (the bucket may go into debt, which
+// later callers wait out), a negative one refunds, up to capacity.
+func (b *TokenBucket) Adjust(ctx context.Context, key string, delta float64) error {
+	if err := b.script.Run(ctx, b.rdb, []string{b.prefix + key}, b.capacity, b.rate, delta, 1).Err(); err != nil {
+		return fmt.Errorf("token bucket: %w", err)
+	}
+	return nil
 }

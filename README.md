@@ -37,7 +37,7 @@ flowchart LR
 |---|---|---|
 | [encounter-service](services/encounter-service) | Java 21, Spring Boot 4, Spring Security (JWT), JPA, Flyway, PostgreSQL, Spring Kafka, HAPI FHIR client | REST API, roles, encounters and note versions, transactional outbox, idempotent consumers, dead-letter handling, FHIR read/write, audit log, encryption at rest, retention |
 | [note-worker](services/note-worker) | Python 3.13, confluent-kafka, gRPC, pydantic | Kafka consumer with per-partition sliding commits and backpressure, prompt construction, SOAP parsing and validation, safety check, dead-lettering |
-| [llm-gateway](services/llm-gateway) | Go, gRPC, Redis, Anthropic Go SDK | The only path to the LLM: per-client token-bucket rate limiting, retries with jittered backoff, circuit breaker, fault injection for chaos tests |
+| [llm-gateway](services/llm-gateway) | Go, gRPC, Redis, Anthropic Go SDK | The only path to the LLM: model allowlist, per-client request and LLM-token budgets, retries with jittered backoff, circuit breaker, fault injection for chaos tests |
 | [review-app](apps/review-app) | React 19, TypeScript, Vite | Review queue, transcript and draft side by side, versioned edits, diff against the AI draft, approval, admin view |
 | HAPI FHIR | off the shelf | Patient record server loaded with Synthea patients |
 
@@ -89,6 +89,11 @@ One trace follows all of this across Java, Kafka, Python and Go (17 spans, 3 ser
   `DRAFT_FAILED` (or a filing failure) that an admin can see and retry.
 - **FHIR writes can't join a database transaction**, so filing orders the steps instead:
   conditional create keyed by encounter identifier first (idempotent), then mark `FILED`.
+- **Budget tokens, not just requests.** Providers limit tokens per minute as well as requests, and
+  one long visit costs many short ones' worth. The gateway reserves an estimate from a per-client
+  Redis token bucket before calling the model (prompt characters / 4 plus a typical output), then
+  settles with the real usage: a call that used more puts the client in debt that later calls
+  wait out, and a failed call is refunded.
 - **The gateway fails fast and the worker waits patiently.** The breaker rejects calls within
   milliseconds while the provider is down. The worker keeps retrying for up to 10 minutes, so an
   outage shows up as Kafka backlog that drains afterwards, not as failed drafts.

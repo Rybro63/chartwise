@@ -124,6 +124,8 @@ services:
       REDIS_ADDR: redis:6379
       RATE_LIMIT_BURST: ${RATE_LIMIT_BURST:-20}
       RATE_LIMIT_PER_SECOND: ${RATE_LIMIT_PER_SECOND:-10}
+      # Per-client LLM token budget (input + output). Set it to the provider account's limit.
+      TOKEN_LIMIT_PER_MINUTE: ${TOKEN_LIMIT_PER_MINUTE:-1000000}
       BREAKER_FAILURE_THRESHOLD: "5"
       BREAKER_OPEN_DURATION: 15s
       CHAOS_ENABLED: "true"

@@ -193,3 +193,97 @@ func TestFakeProviderProducesWorkerSchema(t *testing.T) {
 		}
 	}
 }
+
+// tokens records the token budget's reservations and settlements.
+type tokens struct {
+	deny     bool
+	reserved []float64
+	settled  []float64
+}
+
+func (t *tokens) AllowN(_ context.Context, _ string, cost float64) (ratelimit.Decision, error) {
+	if t.deny {
+		return ratelimit.Decision{Allowed: false, RetryAfter: 4 * time.Second}, nil
+	}
+	t.reserved = append(t.reserved, cost)
+	return ratelimit.Decision{Allowed: true}, nil
+}
+
+func (t *tokens) Adjust(_ context.Context, _ string, delta float64) error {
+	t.settled = append(t.settled, delta)
+	return nil
+}
+
+func (t *tokens) Capacity() float64 { return 100_000 }
+
+func startWithTokens(t *testing.T, p provider.Provider, tl *tokens) llmv1.LlmGatewayClient {
+	t.Helper()
+	srv := &Server{
+		Provider:             p,
+		Limiter:              limiter{},
+		TokenLimiter:         tl,
+		ExpectedOutputTokens: 1000,
+		Breaker:              breaker.New(breaker.Config{FailureThreshold: 10, OpenDuration: time.Minute, HalfOpenProbes: 1}, nil, nil),
+		Retry:                retry.Policy{MaxAttempts: 2, Base: time.Millisecond, Max: time.Millisecond},
+		AttemptTimeout:       time.Second,
+		Metrics:              metrics.New(),
+		Log:                  slog.New(slog.NewJSONHandler(&bytes.Buffer{}, nil)),
+		Sleep:                SleepContext,
+	}
+	lis := bufconn.Listen(1 << 20)
+	gs := grpc.NewServer()
+	llmv1.RegisterLlmGatewayServer(gs, srv)
+	go func() { _ = gs.Serve(lis) }()
+	t.Cleanup(gs.Stop)
+	conn, err := grpc.NewClient("passthrough:///bufnet",
+		grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) { return lis.DialContext(ctx) }),
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = conn.Close() })
+	return llmv1.NewLlmGatewayClient(conn)
+}
+
+func TestTokenBudgetReservesThenSettlesWithRealUsage(t *testing.T) {
+	tl := &tokens{}
+	client := startWithTokens(t, &scripted{}, tl)
+	req := request()
+	if _, err := client.Complete(context.Background(), req); err != nil {
+		t.Fatal(err)
+	}
+	// (len("sys") + len(user prompt)) / 4 characters per token, plus the expected output.
+	want := float64((len(req.SystemPrompt)+len(req.UserPrompt))/4 + 1000)
+	if len(tl.reserved) != 1 || tl.reserved[0] != want {
+		t.Fatalf("reserved %v, want [%v]", tl.reserved, want)
+	}
+	// The scripted provider reports 10 input + 5 output tokens: the rest of the reservation is refunded.
+	if len(tl.settled) != 1 || tl.settled[0] != 15-want {
+		t.Fatalf("settled %v, want [%v]", tl.settled, 15-want)
+	}
+}
+
+func TestTokenBudgetExhaustedRejectsBeforeTheProvider(t *testing.T) {
+	p := &scripted{}
+	client := startWithTokens(t, p, &tokens{deny: true})
+	var trailer metadata.MD
+	_, err := client.Complete(context.Background(), request(), grpc.Trailer(&trailer))
+	if status.Code(err) != codes.ResourceExhausted {
+		t.Fatalf("code = %v, want ResourceExhausted", status.Code(err))
+	}
+	if got := trailer.Get(RetryAfterKey); len(got) != 1 || got[0] != "4000" {
+		t.Fatalf("retry-after trailer = %v, want [4000]", got)
+	}
+	if p.calls.Load() != 0 {
+		t.Fatal("provider was called despite an exhausted token budget")
+	}
+}
+
+func TestFailedCallRefundsItsReservation(t *testing.T) {
+	tl := &tokens{}
+	client := startWithTokens(t, &scripted{results: []error{&provider.Error{Retryable: false, Status: 400, Reason: "bad"}}}, tl)
+	_, _ = client.Complete(context.Background(), request())
+	if len(tl.settled) != 1 || tl.settled[0] != -tl.reserved[0] {
+		t.Fatalf("settled %v after reserving %v, want a full refund", tl.settled, tl.reserved)
+	}
+}
