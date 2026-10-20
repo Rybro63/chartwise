@@ -113,6 +113,9 @@ services:
       <<: *otel
       LLM_PROVIDER: ${LLM_PROVIDER:-fake}
       LLM_MODEL: ${LLM_MODEL:-claude-opus-5}
+      # Models a caller may request by name (the note eval's judge, model comparisons).
+      LLM_ALLOWED_MODELS: ${LLM_ALLOWED_MODELS:-claude-opus-5-5,claude-sonnet-5-5,claude-haiku-5-5}
+      LLM_EFFORT: ${LLM_EFFORT:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ANTHROPIC_WORKSPACE_ID: ${ANTHROPIC_WORKSPACE_ID:-}
       FAKE_LATENCY: ${FAKE_LATENCY:-1500ms}

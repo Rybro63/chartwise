@@ -38,10 +38,12 @@ class GatewayClient:
         self._sleep = sleep
         self._clock = clock
 
-    def complete(self, *, request_id: str, system: str, user: str, json_schema: str, max_tokens: int) -> gateway_pb2.CompleteResponse:
+    def complete(self, *, request_id: str, system: str, user: str, json_schema: str, max_tokens: int,
+                 model: str = "") -> gateway_pb2.CompleteResponse:
+        """model names a gateway-allowlisted model; empty uses the gateway's default."""
         request = gateway_pb2.CompleteRequest(
             client_id=self._client_id, request_id=request_id, system_prompt=system,
-            user_prompt=user, json_schema=json_schema, max_tokens=max_tokens)
+            user_prompt=user, json_schema=json_schema, max_tokens=max_tokens, model=model)
         started = self._clock()
         attempt = 0
         while True:

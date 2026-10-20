@@ -20,6 +20,9 @@ message CompleteRequest {
   // Optional JSON Schema. When set, the response text is JSON matching it.
   string json_schema = 5;
   int32 max_tokens = 6;
+  // Optional model to use instead of the gateway's default. It must be on the gateway's allowlist
+  // (LLM_ALLOWED_MODELS), so callers can't route PHI to a model nobody approved.
+  string model = 7;
 }
 
 message CompleteResponse {

@@ -9,6 +9,9 @@ import (
 )
 
 type Request struct {
+	// Model overrides the provider's default model; empty means the default. The server checks
+	// it against the allowlist before it gets here.
+	Model      string
 	System     string
 	User       string
 	JSONSchema string // optional; when set the response text is JSON matching it

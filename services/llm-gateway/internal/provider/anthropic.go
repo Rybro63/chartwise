@@ -38,13 +38,26 @@ func NewAnthropic(apiKey, workspaceID, model, effort string) *Anthropic {
 
 func (a *Anthropic) Name() string { return "anthropic" }
 
+// serverSideFallback lists the models that accept fallbacks: "default". Claude Haiku 5.5 has no
+// server-side fallback (a declined request stays declined), so it is sent without one.
+var serverSideFallback = map[string]bool{
+	"claude-fable-5-1":  true,
+	"claude-opus-5-5":   true,
+	"claude-opus-5":     true,
+	"claude-sonnet-5-5": true,
+}
+
 func (a *Anthropic) Complete(ctx context.Context, req Request) (Response, error) {
 	maxTokens := int64(req.MaxTokens)
 	if maxTokens <= 0 {
 		maxTokens = 16000
 	}
+	model := a.model
+	if req.Model != "" {
+		model = req.Model
+	}
 	params := anthropic.MessageNewParams{
-		Model:     anthropic.Model(a.model),
+		Model:     anthropic.Model(model),
 		MaxTokens: maxTokens,
 		Messages: []anthropic.MessageParam{
 			anthropic.NewUserMessage(anthropic.NewTextBlock(req.User)),
@@ -64,12 +77,15 @@ func (a *Anthropic) Complete(ctx context.Context, req Request) (Response, error)
 		params.OutputConfig.Effort = anthropic.OutputConfigEffort(a.effort)
 	}
 
-	msg, err := a.client.Messages.New(ctx, params,
+	var opts []option.RequestOption
+	if serverSideFallback[model] {
 		// If a safety classifier declines the request, re-serve it on Anthropic's recommended
 		// fallback model inside the same call instead of failing the draft.
-		option.WithHeaderAdd("anthropic-beta", "server-side-fallback-2026-07-01"),
-		option.WithJSONSet("fallbacks", "default"),
-	)
+		opts = append(opts,
+			option.WithHeaderAdd("anthropic-beta", "server-side-fallback-2026-07-01"),
+			option.WithJSONSet("fallbacks", "default"))
+	}
+	msg, err := a.client.Messages.New(ctx, params, opts...)
 	if err != nil {
 		return Response{}, classify(ctx, err)
 	}

@@ -30,8 +30,11 @@ type CompleteRequest struct {
 	SystemPrompt string `protobuf:"bytes,3,opt,name=system_prompt,json=systemPrompt,proto3" json:"system_prompt,omitempty"`
 	UserPrompt   string `protobuf:"bytes,4,opt,name=user_prompt,json=userPrompt,proto3" json:"user_prompt,omitempty"`
 	// Optional JSON Schema. When set, the response text is JSON matching it.
-	JsonSchema    string `protobuf:"bytes,5,opt,name=json_schema,json=jsonSchema,proto3" json:"json_schema,omitempty"`
-	MaxTokens     int32  `protobuf:"varint,6,opt,name=max_tokens,json=maxTokens,proto3" json:"max_tokens,omitempty"`
+	JsonSchema string `protobuf:"bytes,5,opt,name=json_schema,json=jsonSchema,proto3" json:"json_schema,omitempty"`
+	MaxTokens  int32  `protobuf:"varint,6,opt,name=max_tokens,json=maxTokens,proto3" json:"max_tokens,omitempty"`
+	// Optional model to use instead of the gateway's default. It must be on the gateway's allowlist
+	// (LLM_ALLOWED_MODELS), so callers can't route PHI to a model nobody approved.
+	Model         string `protobuf:"bytes,7,opt,name=model,proto3" json:"model,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -106,6 +109,13 @@ func (x *CompleteRequest) GetMaxTokens() int32 {
 		return x.MaxTokens
 	}
 	return 0
+}
+
+func (x *CompleteRequest) GetModel() string {
+	if x != nil {
+		return x.Model
+	}
+	return ""
 }
 
 type CompleteResponse struct {
@@ -197,7 +207,7 @@ var File_chartwise_llm_v1_gateway_proto protoreflect.FileDescriptor
 
 const file_chartwise_llm_v1_gateway_proto_rawDesc = "" +
 	"\n" +
-	"\x1echartwise/llm/v1/gateway.proto\x12\x10chartwise.llm.v1\"\xd3\x01\n" +
+	"\x1echartwise/llm/v1/gateway.proto\x12\x10chartwise.llm.v1\"\xe9\x01\n" +
 	"\x0fCompleteRequest\x12\x1b\n" +
 	"\tclient_id\x18\x01 \x01(\tR\bclientId\x12\x1d\n" +
 	"\n" +
@@ -208,7 +218,8 @@ const file_chartwise_llm_v1_gateway_proto_rawDesc = "" +
 	"\vjson_schema\x18\x05 \x01(\tR\n" +
 	"jsonSchema\x12\x1d\n" +
 	"\n" +
-	"max_tokens\x18\x06 \x01(\x05R\tmaxTokens\"\xc1\x01\n" +
+	"max_tokens\x18\x06 \x01(\x05R\tmaxTokens\x12\x14\n" +
+	"\x05model\x18\a \x01(\tR\x05model\"\xc1\x01\n" +
 	"\x10CompleteResponse\x12\x12\n" +
 	"\x04text\x18\x01 \x01(\tR\x04text\x12\x14\n" +
 	"\x05model\x18\x02 \x01(\tR\x05model\x12\x1f\n" +

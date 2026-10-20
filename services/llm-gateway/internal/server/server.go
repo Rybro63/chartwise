@@ -38,7 +38,10 @@ type Limiter interface {
 type Server struct {
 	llmv1.UnimplementedLlmGatewayServer
 
-	Provider       provider.Provider
+	Provider provider.Provider
+	// AllowedModels are the models a caller may request by name. A request naming any other
+	// model is rejected; one naming none gets the provider's default.
+	AllowedModels  map[string]bool
 	Limiter        Limiter
 	Breaker        *breaker.Breaker
 	Retry          retry.Policy
@@ -73,6 +76,9 @@ func (s *Server) complete(ctx context.Context, req *llmv1.CompleteRequest) (*llm
 	if req.GetClientId() == "" || req.GetUserPrompt() == "" {
 		return nil, "invalid", 0, status.Error(codes.InvalidArgument, "client_id and user_prompt are required")
 	}
+	if m := req.GetModel(); m != "" && !s.AllowedModels[m] {
+		return nil, "invalid", 0, status.Errorf(codes.InvalidArgument, "model %q is not allowed by this gateway", m)
+	}
 
 	// 1. Admission control.
 	decision, err := s.Limiter.Allow(ctx, req.GetClientId())
@@ -87,6 +93,7 @@ func (s *Server) complete(ctx context.Context, req *llmv1.CompleteRequest) (*llm
 	}
 
 	preq := provider.Request{
+		Model:      req.GetModel(),
 		System:     req.GetSystemPrompt(),
 		User:       req.GetUserPrompt(),
 		JSONSchema: req.GetJsonSchema(),
@@ -112,8 +119,8 @@ func (s *Server) complete(ctx context.Context, req *llmv1.CompleteRequest) (*llm
 		if err == nil {
 			done(true)
 			s.Metrics.Attempts.WithLabelValues(s.Provider.Name(), "ok").Inc()
-			s.Metrics.Tokens.WithLabelValues("input").Add(float64(resp.InputTokens))
-			s.Metrics.Tokens.WithLabelValues("output").Add(float64(resp.OutputTokens))
+			s.Metrics.Tokens.WithLabelValues("input", resp.Model, req.GetClientId()).Add(float64(resp.InputTokens))
+			s.Metrics.Tokens.WithLabelValues("output", resp.Model, req.GetClientId()).Add(float64(resp.OutputTokens))
 			return &llmv1.CompleteResponse{
 				Text:         resp.Text,
 				Model:        resp.Model,

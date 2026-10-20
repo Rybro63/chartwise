@@ -11,6 +11,8 @@ token usage are recorded alongside, so one run answers "how good, how fast, how 
     .venv/bin/python eval/run_note_eval.py --count 20 --label fake
     # re-grade a saved run after changing the grader, without new model calls
     .venv/bin/python eval/run_note_eval.py --regrade ../../docs/results/note-eval-fake.json
+    # also have the LLM judge label every sentence (judge.py; costs money on a real model)
+    .venv/bin/python eval/run_note_eval.py --count 20 --label opus --judge
 
 Results go to docs/results/note-eval-<label>.json. The notes are synthetic, so the file keeps
 them for review.
@@ -21,6 +23,7 @@ import json
 import statistics
 import sys
 import time
+import urllib.parse
 from datetime import datetime
 from pathlib import Path
 
@@ -29,7 +32,11 @@ sys.path.insert(0, str(ROOT / "chaos"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import lib  # noqa: E402  (chaos/lib.py: API, Prometheus and database helpers)
+import judge as judging  # noqa: E402
 from grading import Grade, grade, summarise  # noqa: E402
+
+GATEWAY = "localhost:50051"
+JUDGE_CLIENT = "note-eval-judge"
 
 # USD per million tokens (input, output), Claude API list prices.
 PRICES = {
@@ -54,16 +61,40 @@ def percentile(values: list[float], p: float) -> float | None:
     return ordered[max(0, round(p * len(ordered)) - 1)]
 
 
+def token_counters() -> dict[tuple[str, str, str], float]:
+    """Gateway token counters by (client, model, type)."""
+    url = f"{lib.PROM}/api/v1/query?" + urllib.parse.urlencode(
+        {"query": "sum by (client, model, type) (llm_gateway_tokens_total)"})
+    return {(r["metric"].get("client", ""), r["metric"].get("model", ""), r["metric"].get("type", "")): float(r["value"][1])
+            for r in lib.http("GET", url)["data"]["result"]}
+
+
+def usage_since(before: dict) -> dict:
+    """Tokens and estimated cost per client and model since a token_counters() snapshot."""
+    time.sleep(10)  # let Prometheus scrape the gateway's final counts
+    after = token_counters()
+    usage: dict[str, dict] = {}
+    for (client, model, kind), value in after.items():
+        delta = int(value - before.get((client, model, kind), 0))
+        if delta <= 0:
+            continue
+        u = usage.setdefault(f"{client}/{model}", {"client": client, "model": model, "input_tokens": 0, "output_tokens": 0})
+        u[f"{kind}_tokens"] += delta
+    for u in usage.values():
+        price = PRICES.get(u["model"], (0.0, 0.0) if u["model"].startswith("fake") else None)
+        u["estimated_cost_usd"] = (round(u["input_tokens"] / 1e6 * price[0] + u["output_tokens"] / 1e6 * price[1], 4)
+                                   if price else None)
+    return usage
+
+
 def collect(visits: list[dict]) -> tuple[list[dict], dict]:
     """Runs the visits through the stack; returns per-note rows and token usage."""
-    tokens_before = {t: lib.prom(f'sum(llm_gateway_tokens_total{{type="{t}"}})') or 0 for t in ("input", "output")}
+    before = token_counters()
     scribe, clinician = lib.login(), lib.login("clinician")
     ids = [lib.create_encounter(scribe, v) for v in visits]
     print(f"submitted {len(ids)} encounters; waiting for drafts...")
     lib.wait_until(lambda: lib.drafting_count(ids) == 0, timeout=1800, interval=5)
-    time.sleep(10)  # let Prometheus scrape the gateway's final token counts
-    tokens = {t: int((lib.prom(f'sum(llm_gateway_tokens_total{{type="{t}"}})') or 0) - tokens_before[t])
-              for t in ("input", "output")}
+    usage = usage_since(before)
 
     rows = []
     for encounter_id, visit in zip(ids, visits):
@@ -78,11 +109,36 @@ def collect(visits: list[dict]) -> tuple[list[dict], dict]:
             "note": d["latest"]["soap"] if d["latest"] else None,
             "transcript": visit["transcript"],
             "facts": visit["facts"],
+            # What the model saw of the record (synthetic), for the judge and for review.
+            "record": lib.http("GET", f"{lib.API}/api/encounters/{encounter_id}/patient-context", token=clinician),
         })
-    return rows, tokens
+    return rows, usage
 
 
-def report(rows: list[dict], tokens: dict, label: str) -> dict:
+def run_judge(rows: list[dict], model: str) -> dict:
+    from note_worker.gateway_client import GatewayClient
+
+    client = GatewayClient(GATEWAY, JUDGE_CLIENT, deadline_s=300, retry_budget_s=900)
+    before = token_counters()
+    for i, row in enumerate(r for r in rows if r["note"]):
+        try:
+            row["judge"] = judging.judge(client, request_id=row["encounter_id"], note=row["note"],
+                                         transcript=row["transcript"], record=row["record"], model=model).to_dict()
+        except judging.JudgeError as e:
+            row["judge"] = {"error": str(e)}
+        print(f"  judged {i + 1}", end="\r", flush=True)
+    client.close()
+    print()
+    return usage_since(before)
+
+
+def judge_summary(rows: list[dict]) -> dict:
+    verdicts = [judging.Verdict(r["judge"]["sentences"], r["judge"]["omissions"], r["judge"]["model"])
+                for r in rows if r.get("judge") and "sentences" in r["judge"]]
+    return {**judging.summarise(verdicts), "judge_errors": sum(1 for r in rows if r.get("judge", {}).get("error"))}
+
+
+def report(rows: list[dict], usage: dict, label: str) -> dict:
     grades: list[Grade] = []
     for row in rows:
         if row["note"]:
@@ -91,7 +147,7 @@ def report(rows: list[dict], tokens: dict, label: str) -> dict:
             grades.append(g)
     latencies = [r["draft_seconds"] for r in rows if r["draft_seconds"] is not None]
     models = sorted({r["model"] for r in rows if r["model"]})
-    price = PRICES.get(models[0]) if len(models) == 1 else None
+    drafting = [u for u in usage.values() if u["client"] != JUDGE_CLIENT]
     summary = {
         "label": label,
         "encounters": len(rows),
@@ -102,11 +158,13 @@ def report(rows: list[dict], tokens: dict, label: str) -> dict:
         "safety_flagged_notes": sum(1 for r in rows if any(f["severity"] == "high" for f in r["safety_flags"])),
         "draft_seconds_p50": round(statistics.median(latencies), 1) if latencies else None,
         "draft_seconds_p95": round(percentile(latencies, 0.95), 1) if latencies else None,
-        "input_tokens": tokens.get("input"),
-        "output_tokens": tokens.get("output"),
-        "estimated_cost_usd": round(tokens["input"] / 1e6 * price[0] + tokens["output"] / 1e6 * price[1], 3)
-        if price and tokens.get("input") is not None else (0.0 if models and models[0].startswith("fake") else None),
+        "input_tokens": sum(u["input_tokens"] for u in drafting),
+        "output_tokens": sum(u["output_tokens"] for u in drafting),
+        "estimated_cost_usd": round(sum(u["estimated_cost_usd"] or 0 for u in drafting), 3),
+        "usage": list(usage.values()),
     }
+    if any(r.get("judge") for r in rows):
+        summary["judge"] = judge_summary(rows)
     return summary
 
 
@@ -116,6 +174,14 @@ def print_summary(summary: dict) -> None:
           f"({summary['notes_with_violation']} of {summary['notes']} notes)")
     print(f"draft p50 {summary['draft_seconds_p50']} s, p95 {summary['draft_seconds_p95']} s; "
           f"tokens in/out {summary['input_tokens']}/{summary['output_tokens']}; cost ${summary['estimated_cost_usd']}")
+    if "judge" in summary:
+        j = summary["judge"]
+        print(f"judge ({', '.join(j['judge_models'])}): {j['sentences']} sentences, {j['unsupported_rate']:.1%} unsupported, "
+              f"{j['contradicted_rate']:.1%} contradicted, {j['omissions_per_note']} omissions per note, "
+              f"{j['judge_errors']} errors")
+    for u in summary["usage"]:
+        print(f"  {u['client']:<16} {u['model']:<20} in {u['input_tokens']:>8} out {u['output_tokens']:>8} "
+              f"${u['estimated_cost_usd']}")
     print(f"\n{'fact kind':<30}{'type':<11}{'n':>5}{'rate':>8}")
     for kind, k in summary["by_kind"].items():
         print(f"{kind:<30}{k['type']:<11}{k['total']:>5}{k['rate']:>8.1%}")
@@ -128,24 +194,31 @@ def main() -> None:
     ap.add_argument("--offset", type=int, default=0, help="start position in the visits file")
     ap.add_argument("--label", default="run")
     ap.add_argument("--regrade", help="re-grade a saved results file instead of running visits")
+    ap.add_argument("--judge", action="store_true", help="have the LLM judge label every note sentence")
+    ap.add_argument("--judge-model", default=judging.JUDGE_MODEL)
     args = ap.parse_args()
 
     if args.regrade:
         path = Path(args.regrade)
         saved = json.loads(path.read_text())
         rows, label = saved["notes"], saved["summary"]["label"]
-        tokens = {"input": saved["summary"]["input_tokens"], "output": saved["summary"]["output_tokens"]}
+        usage = {f"{u['client']}/{u['model']}": u for u in saved["summary"].get("usage", [])}
     else:
         visits = json.loads(Path(args.visits).read_text())[args.offset: args.offset + args.count]
         if not visits or "facts" not in visits[0]:
             sys.exit("These visits have no answer key. Regenerate them: python3 tools/transcripts/generate.py")
-        rows, tokens = collect(visits)
+        rows, usage = collect(visits)
         label = args.label
         path = lib.RESULTS / f"note-eval-{label}.json"
 
-    summary = report(rows, tokens, label)
+    if args.judge:
+        print("judging...")
+        usage = {k: u for k, u in usage.items() if u["client"] != JUDGE_CLIENT}
+        usage.update(run_judge(rows, args.judge_model))
+    summary = report(rows, usage, label)
     if args.regrade:
-        summary = {**saved["summary"], **{k: v for k, v in summary.items() if k not in ("input_tokens", "output_tokens")}}
+        kept = ("draft_seconds_p50", "draft_seconds_p95")
+        summary = {**summary, **{k: saved["summary"][k] for k in kept if k in saved["summary"]}}
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps({"summary": summary, "notes": rows}, indent=2) + "\n")
     print_summary(summary)

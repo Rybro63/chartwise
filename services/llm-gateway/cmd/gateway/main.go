@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -51,13 +52,21 @@ func run(log *slog.Logger) error {
 
 	m := metrics.New()
 
+	model := env("LLM_MODEL", "claude-opus-5")
+	allowed := map[string]bool{model: true}
+	for _, m := range strings.Split(os.Getenv("LLM_ALLOWED_MODELS"), ",") {
+		if m = strings.TrimSpace(m); m != "" {
+			allowed[m] = true
+		}
+	}
+
 	var base provider.Provider
 	switch env("LLM_PROVIDER", "fake") {
 	case "anthropic":
 		if os.Getenv("ANTHROPIC_API_KEY") == "" {
 			log.Warn("LLM_PROVIDER=anthropic but ANTHROPIC_API_KEY is empty; the SDK will look for other credentials")
 		}
-		base = provider.NewAnthropic(os.Getenv("ANTHROPIC_API_KEY"), os.Getenv("ANTHROPIC_WORKSPACE_ID"), env("LLM_MODEL", "claude-opus-5"), os.Getenv("LLM_EFFORT"))
+		base = provider.NewAnthropic(os.Getenv("ANTHROPIC_API_KEY"), os.Getenv("ANTHROPIC_WORKSPACE_ID"), model, os.Getenv("LLM_EFFORT"))
 	case "fake":
 		base = &provider.Fake{
 			Latency:           duration("FAKE_LATENCY", 800*time.Millisecond),
@@ -83,9 +92,10 @@ func run(log *slog.Logger) error {
 	})
 
 	srv := &server.Server{
-		Provider: chaos,
-		Limiter:  ratelimit.New(rdb, float("RATE_LIMIT_BURST", 20), float("RATE_LIMIT_PER_SECOND", 10)),
-		Breaker:  br,
+		Provider:      chaos,
+		AllowedModels: allowed,
+		Limiter:       ratelimit.New(rdb, float("RATE_LIMIT_BURST", 20), float("RATE_LIMIT_PER_SECOND", 10)),
+		Breaker:       br,
 		Retry: retry.Policy{
 			MaxAttempts: integer("RETRY_MAX_ATTEMPTS", 4),
 			Base:        duration("RETRY_BASE_DELAY", 250*time.Millisecond),
@@ -138,7 +148,7 @@ func run(log *slog.Logger) error {
 			}
 		}
 	}()
-	log.Info("llm gateway listening", "grpc", lis.Addr().String(), "http", httpSrv.Addr, "provider", base.Name())
+	log.Info("llm gateway listening", "grpc", lis.Addr().String(), "http", httpSrv.Addr, "provider", base.Name(), "model", model)
 
 	select {
 	case <-ctx.Done():

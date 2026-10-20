@@ -28,13 +28,15 @@ const phiCanary = "PHI-CANARY-PROMPT-93ab"
 
 // scripted returns the queued results in order, then succeeds.
 type scripted struct {
-	calls   atomic.Int32
-	results []error
+	calls     atomic.Int32
+	results   []error
+	lastModel atomic.Value
 }
 
 func (p *scripted) Name() string { return "scripted" }
 func (p *scripted) Complete(ctx context.Context, req provider.Request) (provider.Response, error) {
 	n := int(p.calls.Add(1))
+	p.lastModel.Store(req.Model)
 	if n <= len(p.results) && p.results[n-1] != nil {
 		return provider.Response{}, p.results[n-1]
 	}
@@ -57,6 +59,7 @@ func start(t *testing.T, p provider.Provider, l Limiter, threshold int) (llmv1.L
 	logs := &bytes.Buffer{}
 	srv := &Server{
 		Provider:       p,
+		AllowedModels:  map[string]bool{"claude-haiku-5-5": true},
 		Limiter:        l,
 		Breaker:        breaker.New(breaker.Config{FailureThreshold: threshold, OpenDuration: time.Minute, HalfOpenProbes: 1}, nil, nil),
 		Retry:          retry.Policy{MaxAttempts: 3, Base: time.Millisecond, Max: time.Millisecond},
@@ -98,6 +101,29 @@ func TestRetriesTransientErrorsThenSucceeds(t *testing.T) {
 	}
 	if strings.Contains(logs.String(), phiCanary) {
 		t.Fatalf("prompt content leaked into logs: %s", logs.String())
+	}
+}
+
+func TestRequestedModelMustBeAllowed(t *testing.T) {
+	p := &scripted{}
+	client, _ := start(t, p, limiter{}, 10)
+
+	req := request()
+	req.Model = "claude-haiku-5-5"
+	if _, err := client.Complete(context.Background(), req); err != nil {
+		t.Fatalf("allowed model rejected: %v", err)
+	}
+	if got := p.lastModel.Load(); got != "claude-haiku-5-5" {
+		t.Fatalf("provider got model %q, want claude-haiku-5-5", got)
+	}
+
+	req.Model = "some-unapproved-model"
+	_, err := client.Complete(context.Background(), req)
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("code = %v, want InvalidArgument", status.Code(err))
+	}
+	if p.calls.Load() != 1 {
+		t.Fatalf("a disallowed model reached the provider (%d calls)", p.calls.Load())
 	}
 }
 

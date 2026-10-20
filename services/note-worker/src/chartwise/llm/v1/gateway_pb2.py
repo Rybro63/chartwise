@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1e\x63hartwise/llm/v1/gateway.proto\x12\x10\x63hartwise.llm.v1\"\x8d\x01\n\x0f\x43ompleteRequest\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12\x12\n\nrequest_id\x18\x02 \x01(\t\x12\x15\n\rsystem_prompt\x18\x03 \x01(\t\x12\x13\n\x0buser_prompt\x18\x04 \x01(\t\x12\x13\n\x0bjson_schema\x18\x05 \x01(\t\x12\x12\n\nmax_tokens\x18\x06 \x01(\x05\"\x83\x01\n\x10\x43ompleteResponse\x12\x0c\n\x04text\x18\x01 \x01(\t\x12\r\n\x05model\x18\x02 \x01(\t\x12\x13\n\x0bstop_reason\x18\x03 \x01(\t\x12\x14\n\x0cinput_tokens\x18\x04 \x01(\x03\x12\x15\n\routput_tokens\x18\x05 \x01(\x03\x12\x10\n\x08\x61ttempts\x18\x06 \x01(\x05\x32_\n\nLlmGateway\x12Q\n\x08\x43omplete\x12!.chartwise.llm.v1.CompleteRequest\x1a\".chartwise.llm.v1.CompleteResponseB=Z;github.com/chartwise/llm-gateway/gen/chartwise/llm/v1;llmv1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1e\x63hartwise/llm/v1/gateway.proto\x12\x10\x63hartwise.llm.v1\"\x9c\x01\n\x0f\x43ompleteRequest\x12\x11\n\tclient_id\x18\x01 \x01(\t\x12\x12\n\nrequest_id\x18\x02 \x01(\t\x12\x15\n\rsystem_prompt\x18\x03 \x01(\t\x12\x13\n\x0buser_prompt\x18\x04 \x01(\t\x12\x13\n\x0bjson_schema\x18\x05 \x01(\t\x12\x12\n\nmax_tokens\x18\x06 \x01(\x05\x12\r\n\x05model\x18\x07 \x01(\t\"\x83\x01\n\x10\x43ompleteResponse\x12\x0c\n\x04text\x18\x01 \x01(\t\x12\r\n\x05model\x18\x02 \x01(\t\x12\x13\n\x0bstop_reason\x18\x03 \x01(\t\x12\x14\n\x0cinput_tokens\x18\x04 \x01(\x03\x12\x15\n\routput_tokens\x18\x05 \x01(\x03\x12\x10\n\x08\x61ttempts\x18\x06 \x01(\x05\x32_\n\nLlmGateway\x12Q\n\x08\x43omplete\x12!.chartwise.llm.v1.CompleteRequest\x1a\".chartwise.llm.v1.CompleteResponseB=Z;github.com/chartwise/llm-gateway/gen/chartwise/llm/v1;llmv1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -33,9 +33,9 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'Z;github.com/chartwise/llm-gateway/gen/chartwise/llm/v1;llmv1'
   _globals['_COMPLETEREQUEST']._serialized_start=53
-  _globals['_COMPLETEREQUEST']._serialized_end=194
-  _globals['_COMPLETERESPONSE']._serialized_start=197
-  _globals['_COMPLETERESPONSE']._serialized_end=328
-  _globals['_LLMGATEWAY']._serialized_start=330
-  _globals['_LLMGATEWAY']._serialized_end=425
+  _globals['_COMPLETEREQUEST']._serialized_end=209
+  _globals['_COMPLETERESPONSE']._serialized_start=212
+  _globals['_COMPLETERESPONSE']._serialized_end=343
+  _globals['_LLMGATEWAY']._serialized_start=345
+  _globals['_LLMGATEWAY']._serialized_end=440
 # @@protoc_insertion_point(module_scope)

@@ -46,8 +46,8 @@ func New() *Metrics {
 		}, []string{"from", "to"}),
 		Tokens: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "llm_gateway_tokens_total",
-			Help: "LLM tokens consumed.",
-		}, []string{"type"}),
+			Help: "LLM tokens consumed, by type (input, output), the model that served them and the calling client.",
+		}, []string{"type", "model", "client"}),
 		RateLimitErrors: prometheus.NewCounter(prometheus.CounterOpts{
 			Name: "llm_gateway_ratelimit_backend_errors_total",
 			Help: "Redis errors while checking the rate limit (requests are admitted when this happens).",
