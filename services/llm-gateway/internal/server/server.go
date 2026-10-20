@@ -80,13 +80,18 @@ func (s *Server) Complete(ctx context.Context, req *llmv1.CompleteRequest) (*llm
 	s.Metrics.Requests.WithLabelValues(req.GetClientId(), outcome).Inc()
 	s.Metrics.Duration.WithLabelValues(outcome).Observe(time.Since(start).Seconds())
 	// Log identifiers and outcomes only. Prompts and completions contain PHI and are never logged.
-	s.Log.Info("complete",
+	// Error messages are the gateway's own (provider.Error reasons), so they are safe to include.
+	attrs := []any{
 		"request_id", req.GetRequestId(),
 		"client_id", req.GetClientId(),
 		"outcome", outcome,
 		"attempts", attempts,
 		"duration_ms", time.Since(start).Milliseconds(),
-	)
+	}
+	if err != nil {
+		attrs = append(attrs, "error", status.Convert(err).Message())
+	}
+	s.Log.Info("complete", attrs...)
 	return resp, err
 }
 

@@ -129,11 +129,15 @@ func TestRequestedModelMustBeAllowed(t *testing.T) {
 
 func TestPermanentErrorsAreNotRetried(t *testing.T) {
 	p := &scripted{results: []error{&provider.Error{Retryable: false, Status: 400, Reason: "bad request"}}}
-	client, _ := start(t, p, limiter{}, 10)
+	client, logs := start(t, p, limiter{}, 10)
 
 	_, err := client.Complete(context.Background(), request())
 	if status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("code = %v, want FailedPrecondition", status.Code(err))
+	}
+	// The reason is logged (it is the gateway's own text), so a failure can be diagnosed.
+	if !strings.Contains(logs.String(), `"error":"provider rejected request: bad request"`) {
+		t.Fatalf("rejection reason not logged: %s", logs.String())
 	}
 	if p.calls.Load() != 1 {
 		t.Fatalf("permanent error was retried (%d calls)", p.calls.Load())

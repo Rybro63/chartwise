@@ -120,7 +120,9 @@ func classify(ctx context.Context, err error) error {
 			Status: status,
 			// 408 timeout, 409 conflict, 429 rate limit, 5xx (incl. 529 overloaded) are transient.
 			Retryable: status == 408 || status == 409 || status == 429 || status >= 500,
-			Reason:    fmt.Sprintf("anthropic API returned %d", status),
+			// The error type and request ID let an operator tell a spent credit balance from a
+			// malformed request (both are 400s) without logging the API's message.
+			Reason: fmt.Sprintf("anthropic API returned %d (%s, request %s)", status, apierr.Type(), apierr.RequestID),
 		}
 		if apierr.Response != nil {
 			if secs, convErr := strconv.Atoi(apierr.Response.Header.Get("retry-after")); convErr == nil {
