@@ -24,6 +24,7 @@ import statistics
 import sys
 import time
 import urllib.parse
+from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
@@ -106,6 +107,7 @@ def collect(visits: list[dict]) -> tuple[list[dict], dict]:
             "draft_seconds": seconds_between(s["createdAt"], s["draftedAt"]),
             "model": d["latest"]["model"] if d["latest"] else None,
             "safety_flags": d["draftSafetyFlags"],
+            "draft_detail": d.get("draftDetail"),
             "note": d["latest"]["soap"] if d["latest"] else None,
             "transcript": visit["transcript"],
             "facts": visit["facts"],
@@ -156,6 +158,8 @@ def report(rows: list[dict], usage: dict, label: str) -> dict:
         "models": models,
         **summarise(grades),
         "safety_flagged_notes": sum(1 for r in rows if any(f["severity"] == "high" for f in r["safety_flags"])),
+        "safety_flags_by_code": dict(sorted(Counter(f["code"] for r in rows for f in r["safety_flags"]).items())),
+        **sourcing(rows),
         "draft_seconds_p50": round(statistics.median(latencies), 1) if latencies else None,
         "draft_seconds_p95": round(percentile(latencies, 0.95), 1) if latencies else None,
         "input_tokens": sum(u["input_tokens"] for u in drafting),
@@ -168,12 +172,27 @@ def report(rows: list[dict], usage: dict, label: str) -> dict:
     return summary
 
 
+def sourcing(rows: list[dict]) -> dict:
+    """How the draft's statements are sourced (soap-v2 and later; empty for older prompts)."""
+    evidence = [e for r in rows if r.get("draft_detail") for e in r["draft_detail"]["evidence"]]
+    if not evidence:
+        return {}
+    return {"statements": len(evidence),
+            "statements_citing_transcript": round(sum(1 for e in evidence if e["lines"]) / len(evidence), 4),
+            "statements_from_record_only": round(sum(1 for e in evidence if not e["lines"] and e["fromRecord"]) / len(evidence), 4),
+            "statements_unsourced": round(sum(1 for e in evidence if not e["lines"] and not e["fromRecord"]) / len(evidence), 4)}
+
+
 def print_summary(summary: dict) -> None:
     print(f"\n{summary['drafted']}/{summary['encounters']} drafted by {', '.join(summary['models']) or '?'}")
     print(f"fact recall: {summary['fact_recall']:.1%}   distractor violations: {summary['violation_rate']:.1%} "
           f"({summary['notes_with_violation']} of {summary['notes']} notes)")
     print(f"draft p50 {summary['draft_seconds_p50']} s, p95 {summary['draft_seconds_p95']} s; "
           f"tokens in/out {summary['input_tokens']}/{summary['output_tokens']}; cost ${summary['estimated_cost_usd']}")
+    if "statements" in summary:
+        print(f"statements: {summary['statements']}, citing the transcript {summary['statements_citing_transcript']:.1%}, "
+              f"record only {summary['statements_from_record_only']:.1%}, unsourced {summary['statements_unsourced']:.1%}")
+    print(f"safety flags: {summary['safety_flags_by_code'] or 'none'}")
     if "judge" in summary:
         j = summary["judge"]
         print(f"judge ({', '.join(j['judge_models'])}): {j['sentences']} sentences, {j['unsupported_rate']:.1%} unsupported, "

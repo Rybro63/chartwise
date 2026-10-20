@@ -48,6 +48,11 @@ public class NoteVersion {
     @Column(name = "safety_flag_count", nullable = false)
     private int safetyFlagCount;
 
+    /** {@link DraftDetail} as JSON; only on an AI draft from soap-v2 or later. */
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(name = "draft_detail_ciphertext")
+    private String draftDetailJson;
+
     @Column
     private String model;
 
@@ -70,6 +75,12 @@ public class NoteVersion {
         this.createdAt = Instant.now();
     }
 
+    public NoteVersion(UUID encounterId, int version, AuthorType authorType, String author, String contentJson,
+                       String safetyFlagsJson, int safetyFlagCount, String model, String draftDetailJson) {
+        this(encounterId, version, authorType, author, contentJson, safetyFlagsJson, safetyFlagCount, model);
+        this.draftDetailJson = draftDetailJson;
+    }
+
     public UUID getId() { return id; }
     public UUID getEncounterId() { return encounterId; }
     public int getVersion() { return version; }
@@ -79,5 +90,6 @@ public class NoteVersion {
     public String getSafetyFlagsJson() { return safetyFlagsJson; }
     public int getSafetyFlagCount() { return safetyFlagCount; }
     public String getModel() { return model; }
+    public String getDraftDetailJson() { return draftDetailJson; }
     public Instant getCreatedAt() { return createdAt; }
 }

@@ -136,6 +136,9 @@ label { display: flex; flex-direction: column; gap: 0.3rem; font-weight: 500; }
 .split { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 1.25rem; align-items: start; }
 .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; min-width: 0; }
 .transcript { white-space: pre-wrap; word-wrap: break-word; font: inherit; font-size: 0.92rem; margin: 0; max-height: 60vh; overflow-y: auto; }
+.transcript .t-line { display: grid; grid-template-columns: 2.2rem 1fr; padding: 0.1rem 0.25rem; border-radius: 4px; }
+.transcript .t-num { color: var(--muted); font-size: 0.75rem; text-align: right; padding-right: 0.6rem; padding-top: 0.15rem; user-select: none; }
+.transcript .t-line-hl { background: var(--warn-bg); box-shadow: inset 3px 0 0 var(--warn); }
 .context { border-top: 1px solid var(--border); margin-top: 1rem; padding-top: 1rem; }
 .context ul { margin: 0.25rem 0 0; padding-left: 1.2rem; font-size: 0.9rem; }
 .drafting { color: var(--muted); font-style: italic; }
@@ -152,6 +155,20 @@ label { display: flex; flex-direction: column; gap: 0.3rem; font-weight: 500; }
 .soap-section span { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
 .actions { display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center; margin-top: 1rem; flex-wrap: wrap; }
 .history { margin-top: 1rem; color: var(--muted); font-size: 0.9rem; }
+
+.sources-section { margin-bottom: 0.5rem; }
+.source-line { display: block; width: 100%; text-align: left; margin: 0.15rem 0; padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); font: inherit; line-height: 1.4; }
+.source-line.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.source-tag { display: block; font-size: 0.75rem; color: var(--muted); margin-top: 0.15rem; }
+.source-unsourced { background: var(--danger-bg); border-color: var(--danger); }
+.source-unsourced .source-tag, .source-warning { color: var(--danger); font-weight: 600; }
+.source-edited { border-style: dashed; }
+.draft-meds { margin-bottom: 1rem; font-size: 0.9rem; }
+.draft-meds summary { cursor: pointer; color: var(--muted); }
+.table.compact th, .table.compact td { padding: 0.35rem 0.6rem; }
+.med-status { font-size: 0.78rem; font-weight: 600; }
+.med-started, .med-changed { color: var(--warn); }
+.med-stopped { color: var(--danger); }
 
 .diff section { margin-bottom: 0.75rem; }
 .diff-text { white-space: pre-wrap; margin: 0; }

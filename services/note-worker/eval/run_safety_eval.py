@@ -106,6 +106,15 @@ def clean_draft(transcript: str, profile: dict) -> tuple[dict, list[dict]]:
     return sections, meds
 
 
+def as_draft(sections: dict[str, str], meds: list[dict]) -> SoapDraft:
+    """soap-v2 draft from section text. Statements cite line 1: this eval measures the medication
+    checks, not sourcing."""
+    return SoapDraft.model_validate({
+        **{name: [{"text": text, "transcript_lines": [1], "from_record": False}] if text else []
+           for name, text in sections.items()},
+        "medications_mentioned": meds})
+
+
 def ungrounded_drugs(transcript: str, profile: dict, allergies: list[str]) -> list[str]:
     text = (transcript + " " + " ".join(profile["medications"]) + " " + " ".join(allergies)).lower()
     return sorted(g for g in GENERICS if g not in text and not any(b in text for b, gen in BRANDS.items() if gen == g))
@@ -128,7 +137,7 @@ def build_cases(profiles: list[dict], visits_per_patient: int, seed: int) -> lis
 
             def add(category, sections_=None, meds_=None, transcript_=None, allergies_=None, target=None):
                 cases.append(Case(category, profile["id"],
-                                  SoapDraft.model_validate({**(sections_ or sections), "medications_mentioned": meds_ if meds_ is not None else meds}),
+                                  as_draft(sections_ or sections, meds_ if meds_ is not None else meds),
                                   transcript_ or transcript, profile["medications"], allergies_ if allergies_ is not None else allergies,
                                   target))
 

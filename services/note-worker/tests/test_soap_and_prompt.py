@@ -10,8 +10,22 @@ from tests.conftest import soap_json
 
 def test_parses_valid_draft():
     draft = parse_draft(soap_json())
-    assert draft.plan.startswith("Continue lisinopril")
+    assert draft.sections()["plan"].startswith("Continue lisinopril")
     assert draft.medications_mentioned[0].status == "continued"
+
+
+def test_sections_render_one_statement_per_line_and_evidence_keeps_sources():
+    draft = parse_draft(soap_json(plan="Continue lisinopril 10 mg daily.\nFollow up in 4 weeks.", plan_lines=(2, 99)))
+    assert draft.sections()["plan"] == "Continue lisinopril 10 mg daily.\nFollow up in 4 weeks."
+    plan = [e for e in draft.evidence(transcript_line_count=3) if e["section"] == "plan"]
+    # Line 99 doesn't exist in a 3-line transcript, so it isn't kept as a source.
+    assert plan == [{"section": "plan", "text": "Continue lisinopril 10 mg daily.", "lines": [2], "fromRecord": False},
+                    {"section": "plan", "text": "Follow up in 4 weeks.", "lines": [2], "fromRecord": False}]
+
+
+def test_transcript_lines_are_numbered_for_citation(context_payload):
+    prompt = build_user_prompt(DraftContext.from_api(context_payload))
+    assert "[1] Doctor: How is the blood pressure medicine going?\n[2] Patient: Fine" in prompt
 
 
 @pytest.mark.parametrize("text", ["not json", "{}", json.dumps({"subjective": "x"}),

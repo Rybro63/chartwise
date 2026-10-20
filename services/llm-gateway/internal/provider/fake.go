@@ -13,10 +13,11 @@ import (
 // Fake is a deterministic stand-in for the LLM, used for local development, load tests and chaos
 // experiments where calling a real model would be slow, costly and non-reproducible.
 //
-// It understands the note worker's prompt contract (soap-v1): it reads the <transcript>,
-// <active_conditions> and <active_medications> blocks and returns JSON in the worker's schema.
-// With HallucinationRate > 0 it inserts a medication that appears in neither the record nor the
-// transcript, which is exactly what the worker's safety check must catch.
+// It understands the note worker's prompt contract (soap-v2): it reads the numbered <transcript>,
+// <active_conditions> and <active_medications> blocks and returns JSON in the worker's schema,
+// each statement citing the transcript line it came from. With HallucinationRate > 0 it inserts a
+// medication that appears in neither the record nor the transcript and cites no source, which is
+// exactly what the worker's safety check must catch.
 //
 // It also answers the note eval's judge prompt (judge-v1, a <note_sentences> block) with a crude
 // word-overlap verdict, so the judge's plumbing can be exercised for free. Its labels say nothing
@@ -50,63 +51,94 @@ func (f *Fake) Complete(ctx context.Context, req Request) (Response, error) {
 	conditions := lines(block(req.User, "active_conditions"))
 	meds := lines(block(req.User, "active_medications"))
 
-	var patientSaid, clinicianSaid []string
-	for _, line := range lines(transcript) {
-		lower := strings.ToLower(line)
-		switch {
-		case strings.HasPrefix(lower, "patient:"):
-			patientSaid = append(patientSaid, strings.TrimSpace(line[len("patient:"):]))
-		case strings.HasPrefix(lower, "doctor:"), strings.HasPrefix(lower, "clinician:"):
-			clinicianSaid = append(clinicianSaid, strings.TrimSpace(line[strings.Index(line, ":")+1:]))
-		}
+	type statement struct {
+		Text            string `json:"text"`
+		TranscriptLines []int  `json:"transcript_lines"`
+		FromRecord      bool   `json:"from_record"`
 	}
-
 	type med struct {
 		Name   string `json:"name"`
 		Status string `json:"status"`
+		Dose   string `json:"dose"`
 	}
+	var subjective, objective, assessment, plan []statement
 	var mentioned []med
-	var plan []string
+
+	// Transcript lines arrive numbered ("[3] Patient: ..."); every statement cites its line.
+	type utterance struct {
+		n    int
+		text string
+	}
+	var said []utterance
+	for i, line := range strings.Split(transcript, "\n") {
+		n, text := i+1, strings.TrimSpace(line)
+		if m := numberedLine.FindStringSubmatch(text); m != nil {
+			n, text = atoi(m[1]), m[2]
+		}
+		said = append(said, utterance{n, text})
+		lower := strings.ToLower(text)
+		switch {
+		case strings.HasPrefix(lower, "patient:"):
+			subjective = append(subjective, statement{"Patient reports: " + strings.TrimSpace(text[len("patient:"):]), []int{n}, false})
+		case strings.HasPrefix(lower, "doctor:"), strings.HasPrefix(lower, "clinician:"):
+			objective = append(objective, statement{"Clinician: " + strings.TrimSpace(text[strings.Index(text, ":")+1:]), []int{n}, false})
+		}
+	}
+	linesMentioning := func(word string) []int {
+		var out []int
+		for _, u := range said {
+			if strings.Contains(strings.ToLower(u.text), word) {
+				out = append(out, u.n)
+			}
+		}
+		return out
+	}
+
 	for _, m := range meds {
 		name := firstWord(m)
 		if name == "" {
 			continue
 		}
-		if strings.Contains(strings.ToLower(transcript), strings.ToLower(name)) {
+		if cited := linesMentioning(name); len(cited) > 0 {
 			mentioned = append(mentioned, med{Name: name, Status: "continued"})
-			plan = append(plan, fmt.Sprintf("Continue %s as prescribed.", m))
+			plan = append(plan, statement{fmt.Sprintf("Continue %s as prescribed.", m), cited, true})
 		}
 	}
 	if f.HallucinationRate > 0 && rand.Float64() < f.HallucinationRate {
+		// Invented, so it cites nothing: both the medication and the sourcing checks should fire.
 		drug := hallucinationPool[rand.IntN(len(hallucinationPool))]
-		plan = append(plan, fmt.Sprintf("Start %s 5 mg daily.", drug))
-		mentioned = append(mentioned, med{Name: drug, Status: "started"})
+		plan = append(plan, statement{fmt.Sprintf("Start %s 5 mg daily.", drug), []int{}, false})
+		mentioned = append(mentioned, med{Name: drug, Status: "started", Dose: "5 mg"})
 	}
-	plan = append(plan, "Follow up in 4 weeks or sooner if symptoms worsen.")
+	for _, word := range []string{"back in", "follow up", "follow-up"} {
+		if cited := linesMentioning(word); len(cited) > 0 {
+			plan = append(plan, statement{"Follow up as discussed.", cited[len(cited)-1:], false})
+			break
+		}
+	}
 
-	assessment := "Visit reviewed."
 	if len(conditions) > 0 {
-		assessment = "Known conditions: " + strings.Join(conditions, "; ") + "."
+		assessment = append(assessment, statement{"Known conditions: " + strings.Join(conditions, "; ") + ".", []int{}, true})
+	} else {
+		assessment = append(assessment, statement{"No active conditions recorded.", []int{}, true})
 	}
-	objective := "No vitals documented in transcript."
-	if len(clinicianSaid) > 0 {
-		objective = "Clinician observations: " + strings.Join(clinicianSaid, " ")
+	if len(subjective) == 0 {
+		subjective = append(subjective, statement{"Patient symptoms not documented.", []int{}, false})
 	}
-	subjective := "Patient did not report symptoms."
-	if len(patientSaid) > 0 {
-		subjective = "Patient reports: " + strings.Join(patientSaid, " ")
+	if len(objective) == 0 {
+		objective = append(objective, statement{"No vitals documented in transcript.", []int{}, false})
 	}
 
 	out, _ := json.Marshal(map[string]any{
 		"subjective":            subjective,
 		"objective":             objective,
 		"assessment":            assessment,
-		"plan":                  strings.Join(plan, " "),
+		"plan":                  nonNil(plan),
 		"medications_mentioned": nonNil(mentioned),
 	})
 	return Response{
 		Text:         string(out),
-		Model:        "fake-soap-v1",
+		Model:        "fake-soap-v2",
 		StopReason:   "end_turn",
 		InputTokens:  int64(len(req.System)+len(req.User)) / 4,
 		OutputTokens: int64(len(out)) / 4,

@@ -29,6 +29,26 @@ export interface SafetyFlag {
   section: string
 }
 
+export interface EvidenceStatement {
+  section: keyof SoapNote
+  text: string
+  /** 1-based transcript line numbers the statement cites. */
+  lines: number[]
+  fromRecord: boolean
+}
+
+export interface DraftMedication {
+  name: string
+  status: 'continued' | 'started' | 'changed' | 'stopped' | 'mentioned'
+  dose: string
+}
+
+/** Where the AI draft came from (prompt soap-v2); null for older drafts. */
+export interface DraftDetail {
+  evidence: EvidenceStatement[]
+  medications: DraftMedication[]
+}
+
 export interface EncounterSummary {
   id: string
   patientId: string
@@ -61,6 +81,7 @@ export interface EncounterDetail {
   versions: NoteVersionMeta[]
   latest: NoteVersionView | null
   draftSafetyFlags: SafetyFlag[]
+  draftDetail: DraftDetail | null
   approvedVersion: number | null
   approvedBy: string | null
   approvedAt: string | null

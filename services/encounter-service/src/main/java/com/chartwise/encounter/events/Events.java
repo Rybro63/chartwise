@@ -1,5 +1,6 @@
 package com.chartwise.encounter.events;
 
+import com.chartwise.encounter.encounter.DraftDetail;
 import com.chartwise.encounter.encounter.SafetyFlag;
 import com.chartwise.encounter.encounter.SoapNote;
 import java.time.Instant;
@@ -22,13 +23,15 @@ public final class Events {
         }
     }
 
-    /** Published by the note worker. */
+    /** Published by the note worker. evidence and medications are absent before prompt soap-v2. */
     public record NoteDrafted(
             UUID eventId,
             String eventType,
             UUID encounterId,
             Integer attempt,
             SoapNote soap,
+            List<DraftDetail.Statement> evidence,
+            List<DraftDetail.DraftMedication> medications,
             List<SafetyFlag> safetyFlags,
             String model,
             String promptVersion,

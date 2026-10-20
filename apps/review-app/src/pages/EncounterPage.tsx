@@ -3,9 +3,12 @@ import { Link, useParams } from 'react-router-dom'
 import { api, ApiError, type EncounterDetail, type NoteVersionView, type PatientContext, type SoapNote } from '../api'
 import { useAuth } from '../auth'
 import { DiffView } from '../components/DiffView'
+import { DraftMedications } from '../components/DraftMedications'
 import { SafetyFlags } from '../components/SafetyFlags'
 import { SoapEditor } from '../components/SoapEditor'
+import { SourcesView } from '../components/SourcesView'
 import { StatusBadge } from '../components/StatusBadge'
+import { sourceLines, type SourcedLine } from '../lib/evidence'
 import { elapsed, formatTime } from '../lib/format'
 import { usePolling } from '../lib/usePolling'
 
@@ -23,7 +26,8 @@ export function EncounterPage() {
   // Edits are tied to the version they started from; when a new version loads they no longer apply.
   const [edit, setEdit] = useState<{ version: number; soap: SoapNote }>()
   const [aiDraft, setAiDraft] = useState<NoteVersionView>()
-  const [compare, setCompare] = useState(false)
+  const [view, setView] = useState<'edit' | 'sources' | 'compare'>('edit')
+  const [selectedLine, setSelectedLine] = useState<SourcedLine>()
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<{ kind: 'error' | 'ok'; text: string }>()
 
@@ -40,6 +44,14 @@ export function EncounterPage() {
   }, [detail, aiDraft, id])
 
   const dirty = useMemo(() => !!(draft && latest && !sameNote(draft, latest.soap)), [draft, latest])
+  const draftDetail = detail?.draftDetail ?? null
+  const sourced = useMemo(() => (draft && draftDetail ? sourceLines(draft, draftDetail) : []), [draft, draftDetail])
+  const highlighted = useMemo(() => new Set(view === 'sources' ? selectedLine?.lines ?? [] : []), [view, selectedLine])
+
+  useEffect(() => {
+    const first = Math.min(...highlighted)
+    if (Number.isFinite(first)) document.getElementById(`t-line-${first}`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [highlighted])
   const editable = detail?.summary.status === 'IN_REVIEW'
   const canApprove = session?.role === 'CLINICIAN' && editable && !dirty
 
@@ -98,7 +110,15 @@ export function EncounterPage() {
       <div className="split">
         <section className="panel">
           <h3>Transcript</h3>
-          <pre className="transcript">{detail.transcript}</pre>
+          <div className="transcript" role="list">
+            {detail.transcript.split('\n').map((text, i) => (
+              <div key={i} id={`t-line-${i + 1}`} role="listitem"
+                   className={`t-line${highlighted.has(i + 1) ? ' t-line-hl' : ''}`}>
+                <span className="t-num" aria-hidden="true">{i + 1}</span>
+                <span>{text}</span>
+              </div>
+            ))}
+          </div>
           {context && (
             <div className="context">
               <h3>Patient record</h3>
@@ -122,6 +142,7 @@ export function EncounterPage() {
           {latest && draft && (
             <>
               <SafetyFlags flags={detail.draftSafetyFlags} />
+              {draftDetail && <DraftMedications medications={draftDetail.medications} />}
               <div className="note-head">
                 <h3>
                   Note v{latest.version}{' '}
@@ -129,14 +150,23 @@ export function EncounterPage() {
                     {latest.authorType === 'AI' ? `AI draft (${latest.model})` : `edited by ${latest.author}`}
                   </span>
                 </h3>
-                {detail.versions.length > 1 && (
-                  <button className="link" onClick={() => setCompare(!compare)}>
-                    {compare ? 'Hide changes' : 'Compare with AI draft'}
-                  </button>
-                )}
+                <span>
+                  {draftDetail && (
+                    <button className="link" onClick={() => setView(view === 'sources' ? 'edit' : 'sources')}>
+                      {view === 'sources' ? 'Hide sources' : 'Show sources'}
+                    </button>
+                  )}
+                  {detail.versions.length > 1 && (
+                    <button className="link" onClick={() => setView(view === 'compare' ? 'edit' : 'compare')}>
+                      {view === 'compare' ? 'Hide changes' : 'Compare with AI draft'}
+                    </button>
+                  )}
+                </span>
               </div>
 
-              {compare && aiDraft ? (
+              {view === 'sources' ? (
+                <SourcesView lines={sourced} selected={selectedLine} onSelect={setSelectedLine} />
+              ) : view === 'compare' && aiDraft ? (
                 <DiffView before={aiDraft.soap} after={draft} beforeLabel="the AI draft (v1)"
                           afterLabel={dirty ? 'your unsaved edits' : `v${latest.version}`} />
               ) : (

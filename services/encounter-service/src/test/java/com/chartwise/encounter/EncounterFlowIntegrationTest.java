@@ -71,6 +71,12 @@ class EncounterFlowIntegrationTest extends IntegrationTestBase {
         assertThat(detail.get("transcript").asString()).isEqualTo(CANARY_TRANSCRIPT);
         assertThat(detail.get("latest").get("authorType").asString()).isEqualTo("AI");
         assertThat(detail.get("draftSafetyFlags").size()).isEqualTo(1);
+        // The draft's sources come back for the reviewer, and are stored encrypted like the note.
+        assertThat(detail.get("draftDetail").get("evidence").get(0).get("lines").get(0).asInt()).isEqualTo(2);
+        assertThat(detail.get("draftDetail").get("medications").get(0).get("dose").asString()).isEqualTo("10 mg");
+        byte[] storedDetail = jdbc.sql("select draft_detail_ciphertext from note_version where encounter_id = :id")
+                .param("id", id).query(byte[].class).single();
+        assertThat(new String(storedDetail, java.nio.charset.StandardCharsets.ISO_8859_1)).doesNotContain(CANARY_NOTE);
 
         // 5. The scribe edits: a new version, attributed to the scribe.
         mvc.perform(post("/api/encounters/{id}/notes", id).header("Authorization", scribe)
@@ -217,17 +223,20 @@ class EncounterFlowIntegrationTest extends IntegrationTestBase {
     }
 
     private String noteDrafted(UUID id) {
-        return json.writeValueAsString(Map.of(
-                "eventId", UUID.randomUUID().toString(),
-                "eventType", "NoteDrafted",
-                "encounterId", id.toString(),
-                "soap", soap("Continue lisinopril 10 mg daily. " + CANARY_NOTE),
-                "safetyFlags", List.of(Map.of("code", "UNSUPPORTED_MEDICATION", "severity", "high",
-                        "subject", "metformin", "message", "not in record or transcript", "section", "plan")),
-                "model", "fake-llm",
-                "promptVersion", "soap-v1",
-                "gatewayAttempts", 1,
-                "occurredAt", Instant.now().toString()));
+        return json.writeValueAsString(Map.ofEntries(
+                Map.entry("eventId", UUID.randomUUID().toString()),
+                Map.entry("eventType", "NoteDrafted"),
+                Map.entry("encounterId", id.toString()),
+                Map.entry("soap", soap("Continue lisinopril 10 mg daily. " + CANARY_NOTE)),
+                Map.entry("evidence", List.of(Map.of("section", "plan", "text", "Continue lisinopril 10 mg daily. " + CANARY_NOTE,
+                        "lines", List.of(2), "fromRecord", true))),
+                Map.entry("medications", List.of(Map.of("name", "lisinopril", "status", "continued", "dose", "10 mg"))),
+                Map.entry("safetyFlags", List.of(Map.of("code", "UNSUPPORTED_MEDICATION", "severity", "high",
+                        "subject", "metformin", "message", "not in record or transcript", "section", "plan"))),
+                Map.entry("model", "fake-llm"),
+                Map.entry("promptVersion", "soap-v2"),
+                Map.entry("gatewayAttempts", 1),
+                Map.entry("occurredAt", Instant.now().toString())));
     }
 
     private ConsumerRecord<String, String> awaitRecord(String topic, String key) {

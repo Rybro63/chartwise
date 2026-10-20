@@ -101,8 +101,10 @@ public class EncounterService {
                 .toList();
         NoteVersionView latest = all.isEmpty() ? null : view(all.getLast());
         List<SafetyFlag> draftFlags = all.isEmpty() ? List.of() : flags(all.getFirst());
+        String detailJson = all.isEmpty() ? null : all.getFirst().getDraftDetailJson();
+        DraftDetail draftDetail = detailJson == null ? null : json.readValue(detailJson, DraftDetail.class);
         audit.record(user, AuditAction.ENCOUNTER_VIEWED, id, latest == null ? null : latest.version(), Map.of());
-        return new EncounterDetail(EncounterSummary.of(e), e.getTranscript(), metas, latest, draftFlags,
+        return new EncounterDetail(EncounterSummary.of(e), e.getTranscript(), metas, latest, draftFlags, draftDetail,
                 e.getApprovedVersion(), e.getApprovedBy(), e.getApprovedAt(), e.getFhirDocumentId(), e.getFailureReason());
     }
 
@@ -205,8 +207,11 @@ public class EncounterService {
             return;
         }
         List<SafetyFlag> flags = event.safetyFlags() == null ? List.of() : event.safetyFlags();
+        String detail = event.evidence() == null && event.medications() == null ? null
+                : json.writeValueAsString(new DraftDetail(Objects.requireNonNullElse(event.evidence(), List.of()),
+                        Objects.requireNonNullElse(event.medications(), List.of())));
         versions.save(new NoteVersion(id, 1, AuthorType.AI, "note-worker", json.writeValueAsString(event.soap()),
-                json.writeValueAsString(flags), flags.size(), event.model()));
+                json.writeValueAsString(flags), flags.size(), event.model(), detail));
         e.acceptDraft(flags.size());
         audit.record(NOTE_WORKER, AuditAction.DRAFT_RECEIVED, id, 1,
                 Map.of("safetyFlags", flags.size(), "model", String.valueOf(event.model())));

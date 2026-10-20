@@ -1,14 +1,19 @@
-"""Prompt contract between the worker and the LLM (version soap-v1).
+"""Prompt contract between the worker and the LLM (version soap-v2).
 
 The LLM sees the patient's age and sex, active problems, medications and allergies, and the
-transcript. It never sees the patient's name or identifiers: they aren't needed to write the note
-(HIPAA minimum necessary).
+transcript with numbered lines. It never sees the patient's name or identifiers: they aren't
+needed to write the note (HIPAA minimum necessary).
+
+Each section comes back as a list of statements, and every statement cites the transcript lines
+it comes from or says it relies on the record. That lets the reviewer click a sentence to see its
+source, and lets the safety check flag statements with no source at all (soap-v1 returned plain
+section text, so a reviewer had to search the transcript for everything).
 """
 
 import json
 from dataclasses import dataclass, field
 
-PROMPT_VERSION = "soap-v1"
+PROMPT_VERSION = "soap-v2"
 
 SYSTEM_PROMPT = """You are a clinical documentation assistant. You turn a recorded outpatient visit \
 into a draft SOAP note that a clinician will review, edit and sign.
@@ -30,26 +35,48 @@ Sections:
 - plan: medications (with dose and whether continued, started, changed or stopped), tests, \
 referrals, patient education and follow-up.
 
-In medications_mentioned, list every medication named anywhere in your note, with its status."""
+Write each section as a list of statements, one sentence or bullet each. For every statement, put \
+the numbers of the transcript lines it comes from in transcript_lines, and set from_record to true \
+if it relies on the patient's record. A statement with neither is shown to the reviewer as \
+unsupported, so leave out anything you cannot source. If a speaker corrects themselves, document \
+the corrected version.
+
+In medications_mentioned, list every medication named anywhere in your note, with its status and \
+the dose as stated in the visit (an empty string if no dose was stated)."""
+
+_STATEMENTS: dict = {
+    "type": "array",
+    "items": {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["text", "transcript_lines", "from_record"],
+        "properties": {
+            "text": {"type": "string"},
+            "transcript_lines": {"type": "array", "items": {"type": "integer"}},
+            "from_record": {"type": "boolean"},
+        },
+    },
+}
 
 SOAP_SCHEMA: dict = {
     "type": "object",
     "additionalProperties": False,
     "required": ["subjective", "objective", "assessment", "plan", "medications_mentioned"],
     "properties": {
-        "subjective": {"type": "string"},
-        "objective": {"type": "string"},
-        "assessment": {"type": "string"},
-        "plan": {"type": "string"},
+        "subjective": _STATEMENTS,
+        "objective": _STATEMENTS,
+        "assessment": _STATEMENTS,
+        "plan": _STATEMENTS,
         "medications_mentioned": {
             "type": "array",
             "items": {
                 "type": "object",
                 "additionalProperties": False,
-                "required": ["name", "status"],
+                "required": ["name", "status", "dose"],
                 "properties": {
                     "name": {"type": "string"},
                     "status": {"type": "string", "enum": ["continued", "started", "changed", "stopped", "mentioned"]},
+                    "dose": {"type": "string"},
                 },
             },
         },
@@ -90,6 +117,11 @@ def _bullets(items: list[str]) -> str:
     return "\n".join(f"- {item}" for item in items) if items else "(none recorded)"
 
 
+def numbered(transcript: str) -> str:
+    """Transcript lines prefixed [1], [2], ... so the model can cite them."""
+    return "\n".join(f"[{i}] {line}" for i, line in enumerate(transcript.splitlines(), 1))
+
+
 def build_user_prompt(ctx: DraftContext) -> str:
     age = f"{ctx.age_years}" if ctx.age_years is not None else "unknown"
     return f"""<patient>
@@ -106,7 +138,7 @@ Sex: {ctx.gender or "unknown"}
 {_bullets(ctx.allergies)}
 </allergies>
 <transcript>
-{ctx.transcript or ""}
+{numbered(ctx.transcript or "")}
 </transcript>
 
 Write the SOAP note for this visit."""

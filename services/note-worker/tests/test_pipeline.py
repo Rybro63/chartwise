@@ -15,9 +15,12 @@ def test_drafts_note_with_safety_flags(context_payload):
     event = outcome.event
     assert event["eventType"] == "NoteDrafted"
     assert event["encounterId"] == context_payload["encounterId"]
-    assert event["promptVersion"] == "soap-v1"
+    assert event["promptVersion"] == "soap-v2"
     assert set(event["soap"]) == {"subjective", "objective", "assessment", "plan"}
     assert [f["subject"] for f in event["safetyFlags"]] == ["warfarin"]
+    assert {"section": "plan", "text": "Continue lisinopril. Start warfarin 5 mg.", "lines": [2],
+            "fromRecord": False} in event["evidence"]
+    assert {"name": "warfarin", "status": "started", "dose": ""} in event["medications"]
     # The request carried the schema, and the encounter ID as the correlation ID.
     assert llm.calls[0]["request_id"] == context_payload["encounterId"]
     assert '"medications_mentioned"' in llm.calls[0]["json_schema"]

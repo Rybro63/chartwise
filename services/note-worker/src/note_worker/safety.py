@@ -13,6 +13,11 @@ ALLERGY_CONFLICT (high)
     A medication being continued, started or changed that matches a recorded allergy, including
     by class (a penicillin allergy conflicts with amoxicillin).
 
+UNSUPPORTED_STATEMENT (medium)
+    A statement that cites no transcript line and doesn't claim to come from the record (soap-v2
+    asks the model to source every statement). Saying something was not documented needs no
+    source and isn't flagged.
+
 EMPTY_SECTION (low)
     A SOAP section left blank.
 
@@ -33,6 +38,11 @@ from .soap import SoapDraft
 
 _WORD = re.compile(r"[a-z][a-z\-]+")
 _ACTIVE = {"continued", "started", "changed"}
+# "Respiratory rate not documented." states an absence, which has no line to cite.
+_ABSENCE = re.compile(r"\bnot (?:documented|discussed|reported|assessed|obtained|performed|taken|stated|mentioned|"
+                      r"addressed|reviewed|recorded|measured|examined)\b|\bno (?:\w+ ){0,3}(?:was |were )?"
+                      r"(?:documented|discussed|reported|recorded)\b|\bnone (?:documented|reported|discussed)\b",
+                      re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -77,6 +87,14 @@ def check(draft: SoapDraft, *, transcript: str, record_medications: list[str], a
     for name, text in sections.items():
         if not text.strip():
             flags.append(SafetyFlag("EMPTY_SECTION", "low", name, f"The {name} section is empty.", name))
+
+    line_count = len(transcript.splitlines())
+    for item in draft.evidence(line_count):
+        if not item["lines"] and not item["fromRecord"] and not _ABSENCE.search(item["text"]):
+            subject = item["text"] if len(item["text"]) <= 80 else item["text"][:77] + "..."
+            flags.append(SafetyFlag("UNSUPPORTED_STATEMENT", "medium", subject,
+                                    "This statement cites no line of the transcript and no part of the record.",
+                                    item["section"]))
 
     # What the draft is allowed to mention: the record (medications and allergies) and the
     # transcript, as canonical drug names. A note that says "allergic to penicillin" because the

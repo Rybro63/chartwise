@@ -60,6 +60,9 @@ class NotePipeline:
             "encounterId": encounter_id,
             "attempt": ctx.attempt,
             "soap": {k: v for k, v in draft.sections().items()},
+            # Which transcript lines each statement came from, and the model's medication list.
+            "evidence": draft.evidence(len((ctx.transcript or "").splitlines())),
+            "medications": [m.model_dump() for m in draft.medications_mentioned],
             "safetyFlags": [f.to_event() for f in flags],
             "model": response.model,
             "promptVersion": PROMPT_VERSION,

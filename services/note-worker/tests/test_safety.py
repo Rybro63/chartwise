@@ -1,4 +1,5 @@
 from note_worker import safety
+from note_worker.soap import SoapDraft
 from tests.conftest import make_draft
 
 RECORD = ["lisinopril 10 MG Oral Tablet", "24 HR Metformin hydrochloride 500 MG Extended Release Oral Tablet"]
@@ -83,3 +84,19 @@ def test_mentioning_a_recorded_allergy_is_not_a_hallucination():
                        plan="Continue metformin.", meds=[{"name": "metformin", "status": "continued"}])
     assert safety.check(draft, transcript="Patient: fine.", record_medications=RECORD,
                         allergies=["Aspirin", "Penicillin V"]) == []
+
+
+def test_statement_without_any_source_is_flagged():
+    draft = SoapDraft.model_validate({
+        "subjective": [{"text": "Reports knee pain.", "transcript_lines": [2], "from_record": False}],
+        "objective": [{"text": "Respiratory rate not documented.", "transcript_lines": [], "from_record": False},
+                      {"text": "Oxygen saturation 97% on room air.", "transcript_lines": [], "from_record": False}],
+        "assessment": [{"text": "Type 2 diabetes.", "transcript_lines": [], "from_record": True}],
+        "plan": [{"text": "Continue lisinopril.", "transcript_lines": [7], "from_record": False}],
+        "medications_mentioned": [{"name": "lisinopril", "status": "continued", "dose": ""}]})
+    flags = safety.check(draft, transcript=TRANSCRIPT, record_medications=RECORD, allergies=[])
+    # Line 7 doesn't exist in a 2-line transcript, so the plan statement has no real source either.
+    assert codes(flags) == [("UNSUPPORTED_STATEMENT", "Oxygen saturation 97% on room air."),
+                            ("UNSUPPORTED_STATEMENT", "Continue lisinopril.")]
+    assert {f.severity for f in flags} == {"medium"}
+    assert [f.section for f in flags] == ["objective", "plan"]

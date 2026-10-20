@@ -50,6 +50,7 @@ public final class Dtos {
             List<NoteVersionMeta> versions,
             NoteVersionView latest,
             List<SafetyFlag> draftSafetyFlags,
+            DraftDetail draftDetail,
             Integer approvedVersion,
             String approvedBy,
             Instant approvedAt,

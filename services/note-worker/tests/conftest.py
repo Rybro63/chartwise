@@ -7,12 +7,17 @@ from note_worker.soap import SoapDraft
 CANARY_TRANSCRIPT = "PHI-CANARY-TRANSCRIPT-5d21"
 
 
+def statements(text: str, lines=(1,), from_record: bool = False) -> list[dict]:
+    """A section's text as soap-v2 statements, one per line, each citing the given transcript lines."""
+    return [{"text": t, "transcript_lines": list(lines), "from_record": from_record} for t in text.splitlines() if t.strip()]
+
+
 def make_draft(plan: str = "Continue lisinopril 10 mg daily.", meds=None, **sections) -> SoapDraft:
     return SoapDraft.model_validate({
-        "subjective": sections.get("subjective", "Patient reports feeling well."),
-        "objective": sections.get("objective", "BP 138/86."),
-        "assessment": sections.get("assessment", "Essential hypertension, controlled."),
-        "plan": plan,
+        "subjective": statements(sections.get("subjective", "Patient reports feeling well.")),
+        "objective": statements(sections.get("objective", "BP 138/86.")),
+        "assessment": statements(sections.get("assessment", "Essential hypertension, controlled.")),
+        "plan": statements(plan),
         "medications_mentioned": meds if meds is not None else [{"name": "lisinopril", "status": "continued"}],
     })
 
@@ -57,11 +62,11 @@ class FakeEncounters:
         return self.payload
 
 
-def soap_json(plan="Continue lisinopril 10 mg daily.", meds=None) -> str:
+def soap_json(plan="Continue lisinopril 10 mg daily.", meds=None, plan_lines=(2,)) -> str:
     return json.dumps({
-        "subjective": "Patient reports taking lisinopril daily. " + CANARY_TRANSCRIPT,
-        "objective": "Not documented.",
-        "assessment": "Essential hypertension.",
-        "plan": plan,
-        "medications_mentioned": meds if meds is not None else [{"name": "lisinopril", "status": "continued"}],
+        "subjective": statements("Patient reports taking lisinopril daily. " + CANARY_TRANSCRIPT, lines=(2,)),
+        "objective": statements("Not documented.", lines=()),
+        "assessment": statements("Essential hypertension.", lines=(), from_record=True),
+        "plan": statements(plan, lines=plan_lines),
+        "medications_mentioned": meds if meds is not None else [{"name": "lisinopril", "status": "continued", "dose": ""}],
     })
