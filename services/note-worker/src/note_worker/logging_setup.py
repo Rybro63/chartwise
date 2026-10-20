@@ -19,7 +19,9 @@ class JsonFormatter(logging.Formatter):
             "logger": record.name,
             "msg": record.getMessage(),
         }
-        for key in ("encounter_id", "outcome", "attempt", "duration_ms", "flags", "reason", "batch", "partition", "offset"):
+        # stop_reason is the provider's enum (end_turn, max_tokens, refusal), not content.
+        for key in ("encounter_id", "outcome", "attempt", "duration_ms", "flags", "reason", "batch", "partition", "offset",
+                    "stop_reason"):
             if hasattr(record, key):
                 entry[key] = getattr(record, key)
         if record.exc_info and record.exc_info[0] is not None:

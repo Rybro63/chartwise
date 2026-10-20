@@ -238,7 +238,9 @@ What the numbers and the notes behind them show:
 - **One `soap-v2` draft came back empty.** The model returned valid JSON whose only statement was
   "placeholder", and it reached the review queue with nothing but low-severity empty-section flags.
   That one draft accounts for the recall drop and all the judge's omissions. The worker now
-  rejects and retries a draft like that (see below).
+  rejects schema-valid drafts that aren't notes (two or more empty sections, or fewer than four
+  real statements, for a real conversation) and asks again; if it keeps happening the encounter
+  goes to `DRAFT_FAILED` for an admin instead of into the review queue.
 - **The first grading was wrong, not the model.** The first pass scored `soap-v1` at 36.5%
   distractors; reading every flagged sentence showed most were the grader's false positives
   ("taking lisinopril 10 mg" is correct in the history before a dose increase). The fixes and the

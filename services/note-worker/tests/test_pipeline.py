@@ -1,8 +1,9 @@
+import json
 import logging
 
 import pytest
 
-from note_worker.errors import DraftFormatError
+from note_worker.errors import DraftFormatError, DraftIncomplete
 from note_worker.pipeline import NotePipeline
 from tests.conftest import CANARY_TRANSCRIPT, FakeEncounters, FakeLlm, soap_json
 
@@ -41,6 +42,28 @@ def test_retries_malformed_output_once_then_gives_up(context_payload):
 
     with pytest.raises(DraftFormatError):
         NotePipeline(FakeEncounters(context_payload), FakeLlm("still not json")).draft("x")
+
+
+PLACEHOLDER = json.dumps({"subjective": [], "objective": [], "plan": [], "medications_mentioned": [],
+                          "assessment": [{"text": "placeholder", "transcript_lines": [], "from_record": False}]})
+
+
+def test_incomplete_draft_is_retried_then_rejected(context_payload):
+    # Seen with a real model: schema-valid output whose only statement is "placeholder".
+    visit = context_payload | {"transcript": "\n".join(f"Patient: line {i}" for i in range(8))}
+    llm = FakeLlm(PLACEHOLDER, soap_json())
+    assert NotePipeline(FakeEncounters(visit), llm).draft("x").event is not None
+    assert len(llm.calls) == 2
+
+    with pytest.raises(DraftIncomplete) as e:
+        NotePipeline(FakeEncounters(visit), FakeLlm(PLACEHOLDER)).draft("x")
+    assert e.value.safe_reason == "model returned an incomplete draft"
+
+
+def test_short_conversations_may_have_short_notes(context_payload):
+    # The two-line test transcript is not a real visit, so a brief note is acceptable.
+    llm = FakeLlm(PLACEHOLDER)
+    assert NotePipeline(FakeEncounters(context_payload), llm).draft("x").event is not None
 
 
 def test_no_phi_in_logs(context_payload, caplog):

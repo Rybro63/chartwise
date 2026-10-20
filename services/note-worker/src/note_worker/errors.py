@@ -45,5 +45,11 @@ class DraftFormatError(WorkerError):
     safe_reason = "model output did not match the SOAP note schema"
 
 
+class DraftIncomplete(DraftFormatError):
+    """The output matched the schema but is not a note (empty sections, "placeholder")."""
+
+    safe_reason = "model returned an incomplete draft"
+
+
 class DeliveryFailed(Exception):
     """A produced message was not acknowledged by Kafka. Fatal: the batch must not be committed."""

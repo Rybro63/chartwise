@@ -1,6 +1,7 @@
 from prometheus_client import Counter, Gauge, Histogram
 
 NOTES_DRAFTED = Counter("worker_notes_drafted_total", "Drafts published to note.drafted")
+INCOMPLETE_DRAFTS = Counter("worker_incomplete_drafts_total", "Model outputs rejected as incomplete notes (then retried)")
 DRAFTS_FLAGGED = Counter("worker_drafts_flagged_total", "Drafts with at least one high-severity safety flag")
 SAFETY_FLAGS = Counter("worker_safety_flags_total", "Safety flags raised", ["code"])
 SKIPPED = Counter("worker_messages_skipped_total", "Messages skipped without drafting", ["reason"])

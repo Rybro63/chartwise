@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from typing import Protocol
 
 from . import metrics, safety
-from .errors import DraftFormatError
+from .errors import DraftFormatError, DraftIncomplete
 from .prompt import PROMPT_VERSION, SOAP_SCHEMA_JSON, SYSTEM_PROMPT, DraftContext, build_user_prompt
 from .soap import SoapDraft, parse_draft
 
@@ -45,7 +45,7 @@ class NotePipeline:
             return DraftOutcome(encounter_id, None, f"status_{ctx.status.lower()}")
 
         user_prompt = build_user_prompt(ctx)
-        draft, response = self._generate(encounter_id, user_prompt)
+        draft, response = self._generate(encounter_id, user_prompt, len((ctx.transcript or "").splitlines()))
 
         flags = safety.check(draft, transcript=ctx.transcript or "", record_medications=ctx.medications,
                              allergies=ctx.allergies)
@@ -71,15 +71,28 @@ class NotePipeline:
         }
         metrics.DRAFT_SECONDS.observe(time.monotonic() - started)
         log.info("drafted note", extra={"encounter_id": encounter_id, "flags": len(flags),
+                                        "stop_reason": getattr(response, "stop_reason", ""),
                                         "duration_ms": int((time.monotonic() - started) * 1000)})
         return DraftOutcome(encounter_id, event)
 
-    def _generate(self, encounter_id: str, user_prompt: str) -> tuple[SoapDraft, object]:
+    def _generate(self, encounter_id: str, user_prompt: str, transcript_lines: int) -> tuple[SoapDraft, object]:
+        error: DraftFormatError = DraftFormatError()
         for attempt in range(1, self._format_attempts + 1):
             response = self._llm.complete(request_id=encounter_id, system=SYSTEM_PROMPT, user=user_prompt,
                                           json_schema=SOAP_SCHEMA_JSON, max_tokens=self._max_tokens)
+            extra = {"encounter_id": encounter_id, "attempt": attempt, "stop_reason": getattr(response, "stop_reason", "")}
             try:
-                return parse_draft(response.text), response
+                draft = parse_draft(response.text)
             except DraftFormatError:
-                log.warning("model output failed schema validation", extra={"encounter_id": encounter_id, "attempt": attempt})
-        raise DraftFormatError()
+                log.warning("model output failed schema validation", extra=extra)
+                error = DraftFormatError()
+                continue
+            if draft.is_incomplete(transcript_lines):
+                # Retried like malformed output; if it persists the encounter is dead-lettered to
+                # DRAFT_FAILED, where an admin sees it, instead of reaching review as a "note".
+                metrics.INCOMPLETE_DRAFTS.inc()
+                log.warning("model output was an incomplete draft", extra=extra)
+                error = DraftIncomplete()
+                continue
+            return draft, response
+        raise error

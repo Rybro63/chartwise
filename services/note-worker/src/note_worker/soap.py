@@ -1,6 +1,7 @@
 """Parsing and validation of the model's SOAP output (soap-v2)."""
 
 import json
+import re
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -8,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from .errors import DraftFormatError
 
 SECTIONS = ("subjective", "objective", "assessment", "plan")
+_FILLER = re.compile(r"^\W*(?:placeholder|tbd|todo|n/?a|none|pending|\.\.\.)\W*$", re.IGNORECASE)
 
 
 class MedicationMention(BaseModel):
@@ -42,6 +44,16 @@ class SoapDraft(BaseModel):
 
     def statements(self) -> list[tuple[str, Statement]]:
         return [(name, s) for name in SECTIONS for s in getattr(self, name) if s.text.strip()]
+
+    def is_incomplete(self, transcript_line_count: int) -> bool:
+        """Valid JSON that isn't a note: for a real conversation, two or more sections with nothing
+        but filler, or fewer than four real statements. Found in live use: a draft whose only
+        statement was "placeholder"."""
+        if transcript_line_count < 6:
+            return False
+        real = {name: [s for s in getattr(self, name) if s.text.strip() and not _FILLER.match(s.text)] for name in SECTIONS}
+        empty = sum(1 for statements in real.values() if not statements)
+        return empty >= 2 or sum(len(v) for v in real.values()) < 4
 
     def evidence(self, transcript_line_count: int) -> list[dict]:
         """Statements with their sources, for the reviewer. Citations of lines that don't exist are
