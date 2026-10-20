@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "transcriber"
+version = "0.1.0"
+description = "Chartwise transcriber: turns visit recordings into speaker-labelled transcripts with a local Whisper model."
+requires-python = ">=3.12"
+dependencies = [
+    "faster-whisper==1.2.1",
+    # faster-whisper 1.2.1 passes an argument PyAV 19 removed.
+    "av>=15,<19",
+    "numpy>=2",
+    "confluent-kafka==2.15.1",
+    "httpx==0.28.1",
+    "prometheus-client==0.26.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+transcriber = "transcriber.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = ["model: loads the Whisper model (downloads it on first use, about 145 MB)"]

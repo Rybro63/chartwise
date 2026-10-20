@@ -29,3 +29,4 @@ tools/transcripts/out/
 *.egg-info/
 deploy/k8s/overlays/aws/.demo-password
 deploy/k8s/overlays/aws-rendered/
+tools/audio/out/
