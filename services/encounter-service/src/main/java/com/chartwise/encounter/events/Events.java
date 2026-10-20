@@ -23,6 +23,15 @@ public final class Events {
         }
     }
 
+    /** A visit uploaded as audio; the transcriber fetches the recording through the internal API. */
+    public record EncounterRecorded(
+            UUID eventId, String eventType, UUID encounterId, String patientId, int attempt, Instant occurredAt) {
+
+        public static EncounterRecorded of(UUID encounterId, String patientId, int attempt) {
+            return new EncounterRecorded(UUID.randomUUID(), "EncounterRecorded", encounterId, patientId, attempt, Instant.now());
+        }
+    }
+
     /** Published by the note worker. evidence and medications are absent before prompt soap-v2. */
     public record NoteDrafted(
             UUID eventId,

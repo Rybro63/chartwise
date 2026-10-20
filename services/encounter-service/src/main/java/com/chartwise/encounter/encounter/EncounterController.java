@@ -9,9 +9,11 @@ import com.chartwise.encounter.encounter.Dtos.SaveNoteRequest;
 import com.chartwise.encounter.fhir.PatientContext;
 import com.chartwise.encounter.security.CurrentUser;
 import jakarta.validation.Valid;
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/encounters")
@@ -36,6 +39,21 @@ public class EncounterController {
     @ResponseStatus(HttpStatus.ACCEPTED)
     public EncounterSummary create(@Valid @RequestBody CreateEncounterRequest request) {
         return service.create(request.patientId(), request.transcript(), CurrentUser.get());
+    }
+
+    /** A visit recording (any common audio format; two channels give speaker labels). */
+    @PostMapping(path = "/recording", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public EncounterSummary createFromRecording(@RequestParam String patientId, @RequestParam MultipartFile file)
+            throws IOException {
+        if (file.isEmpty()) {
+            throw new InvalidUploadException("the recording is empty");
+        }
+        String type = file.getContentType() == null ? "application/octet-stream" : file.getContentType();
+        if (!type.startsWith("audio/") && !type.equals("application/octet-stream") && !type.equals("video/webm")) {
+            throw new InvalidUploadException("upload an audio file");
+        }
+        return service.createFromRecording(patientId, file.getBytes(), type, CurrentUser.get());
     }
 
     @GetMapping

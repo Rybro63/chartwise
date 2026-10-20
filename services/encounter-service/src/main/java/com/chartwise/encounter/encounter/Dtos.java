@@ -74,6 +74,16 @@ public final class Dtos {
         }
     }
 
+    /** What the transcriber needs besides the audio. medications bias recognition of drug names. */
+    public record RecordingInfo(UUID encounterId, EncounterStatus status, String contentType, int sizeBytes,
+                                List<String> medications) {}
+
+    /** The transcriber's result. */
+    public record TranscriptSubmission(
+            @NotBlank @Size(max = 200_000) String transcript,
+            @Size(max = 100) String model,
+            Double audioSeconds) {}
+
     /** What the note worker needs to draft a note. Served only to the SERVICE role. */
     public record DraftContext(
             UUID encounterId,

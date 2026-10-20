@@ -1,5 +1,6 @@
 package com.chartwise.encounter;
 
+import static org.awaitility.Awaitility.await;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -7,8 +8,16 @@ import com.chartwise.encounter.fhir.FhirGateway;
 import com.chartwise.encounter.fhir.FiledNote;
 import com.chartwise.encounter.fhir.PatientContext;
 import com.chartwise.encounter.fhir.PatientSummary;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
+import java.util.UUID;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,13 +73,40 @@ public abstract class IntegrationTestBase {
     @Autowired protected StubFhirGateway fhir;
 
     protected String token(String username) throws Exception {
-        String password = username.equals("note-worker") ? "chartwise-worker-dev" : "chartwise-dev";
+        String password = switch (username) {
+            case "note-worker" -> "chartwise-worker-dev";
+            case "transcriber" -> "chartwise-transcriber-dev";
+            default -> "chartwise-dev";
+        };
         String body = mvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(Map.of("username", username, "password", password))))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         return "Bearer " + json.readTree(body).get("token").asString();
+    }
+
+    protected ConsumerRecord<String, String> awaitRecord(String topic, String key,
+                                                       java.util.function.Predicate<ConsumerRecord<String, String>> match) {
+        Properties props = new Properties();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers());
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, "test-" + UUID.randomUUID());
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        try (KafkaConsumer<String, String> consumer = new KafkaConsumer<>(props)) {
+            consumer.subscribe(List.of(topic));
+            List<ConsumerRecord<String, String>> found = new ArrayList<>();
+            await().atMost(Duration.ofSeconds(30)).until(() -> {
+                consumer.poll(Duration.ofMillis(500)).forEach(r -> {
+                    if (key.equals(r.key()) && match.test(r)) {
+                        found.add(r);
+                    }
+                });
+                return !found.isEmpty();
+            });
+            return found.getFirst();
+        }
     }
 
     protected JsonNode read(String body) {

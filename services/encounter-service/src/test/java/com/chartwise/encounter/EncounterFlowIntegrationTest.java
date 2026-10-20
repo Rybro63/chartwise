@@ -251,27 +251,4 @@ class EncounterFlowIntegrationTest extends IntegrationTestBase {
     private ConsumerRecord<String, String> awaitRecord(String topic, String key) {
         return awaitRecord(topic, key, r -> true);
     }
-
-    private ConsumerRecord<String, String> awaitRecord(String topic, String key,
-                                                       java.util.function.Predicate<ConsumerRecord<String, String>> match) {
-        Properties props = new Properties();
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers());
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, "test-" + UUID.randomUUID());
-        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        try (KafkaConsumer<String, String> consumer = new KafkaConsumer<>(props)) {
-            consumer.subscribe(List.of(topic));
-            List<ConsumerRecord<String, String>> found = new ArrayList<>();
-            await().atMost(Duration.ofSeconds(30)).until(() -> {
-                consumer.poll(Duration.ofMillis(500)).forEach(r -> {
-                    if (key.equals(r.key()) && match.test(r)) {
-                        found.add(r);
-                    }
-                });
-                return !found.isEmpty();
-            });
-            return found.getFirst();
-        }
-    }
 }

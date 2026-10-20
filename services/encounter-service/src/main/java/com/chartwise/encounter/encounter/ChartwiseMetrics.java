@@ -38,6 +38,18 @@ public class ChartwiseMetrics {
     }
 
     public void encounterCreated() { encountersCreated.increment(); }
+
+    /** From upload to transcript, and how much audio that was. */
+    public void transcribed(Duration sinceUpload, Double audioSeconds) {
+        Timer.builder("chartwise.transcription.latency")
+                .description("Time from a recording's upload to its transcript")
+                .serviceLevelObjectives(Duration.ofSeconds(10), Duration.ofSeconds(30), Duration.ofSeconds(60),
+                        Duration.ofSeconds(120), Duration.ofSeconds(300), Duration.ofSeconds(600))
+                .register(registry).record(sinceUpload);
+        if (audioSeconds != null) {
+            registry.counter("chartwise.transcribed.audio.seconds").increment(audioSeconds);
+        }
+    }
     /**
      * Records an approval and how much the reviewer changed the AI draft first (EditStats: 0 =
      * approved as drafted, 1 = rewritten), per section and for the whole note.

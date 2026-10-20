@@ -18,6 +18,7 @@ import com.chartwise.encounter.fhir.PatientSummary;
 import com.chartwise.encounter.security.CurrentUser;
 import com.chartwise.encounter.security.Role;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -48,10 +49,11 @@ public class EncounterService {
     private final JsonMapper json;
     private final ChartwiseMetrics metrics;
     private final TransactionTemplate tx;
+    private final RecordingStore recordings;
 
     public EncounterService(EncounterRepository encounters, NoteVersionRepository versions, OutboxWriter outbox,
                             IdempotencyGuard idempotency, AuditLog audit, FhirGateway fhir, JsonMapper json,
-                            ChartwiseMetrics metrics, TransactionTemplate tx) {
+                            ChartwiseMetrics metrics, TransactionTemplate tx, RecordingStore recordings) {
         this.encounters = encounters;
         this.versions = versions;
         this.outbox = outbox;
@@ -61,6 +63,7 @@ public class EncounterService {
         this.json = json;
         this.metrics = metrics;
         this.tx = tx;
+        this.recordings = recordings;
     }
 
     // ---- Clinician / scribe API -------------------------------------------------------------
@@ -79,6 +82,26 @@ public class EncounterService {
         });
         metrics.encounterCreated();
         log.info("Encounter {} created by {}", encounter.getId(), user.username());
+        return EncounterSummary.of(Objects.requireNonNull(encounter));
+    }
+
+    /**
+     * A visit uploaded as audio. Like create(), the encounter, its encrypted recording and an
+     * ID-only event commit together; the transcriber picks it up from encounter.recorded.
+     */
+    public EncounterSummary createFromRecording(String patientId, byte[] audio, String contentType, CurrentUser user) {
+        PatientSummary patient = fhir.findPatient(patientId)
+                .orElseThrow(() -> new NotFoundException("patient not found"));
+        Encounter encounter = tx.execute(status -> {
+            // Flushed first: the recording row (written with JDBC) references the encounter row.
+            Encounter e = encounters.saveAndFlush(Encounter.fromRecording(patientId, patient.name(), user.username()));
+            recordings.save(e.getId(), contentType, audio);
+            outbox.append(e.getId(), Topics.ENCOUNTER_RECORDED, Events.EncounterRecorded.of(e.getId(), patientId, 1));
+            audit.record(user, AuditAction.RECORDING_UPLOADED, e.getId(), null, Map.of("sizeBytes", audio.length));
+            return e;
+        });
+        metrics.encounterCreated();
+        log.info("Encounter {} created from a recording by {}", encounter.getId(), user.username());
         return EncounterSummary.of(Objects.requireNonNull(encounter));
     }
 
@@ -168,6 +191,50 @@ public class EncounterService {
         return EncounterSummary.of(e);
     }
 
+    // ---- Transcriber (internal API) ----------------------------------------------------------
+
+    public Dtos.RecordingInfo recordingInfo(UUID id, CurrentUser transcriber) {
+        Encounter e = tx.execute(status -> find(id));
+        Objects.requireNonNull(e);
+        if (e.getStatus() != EncounterStatus.TRANSCRIBING) {
+            // Already transcribed (duplicate delivery) or failed: nothing to fetch.
+            return new Dtos.RecordingInfo(id, e.getStatus(), null, 0, List.of());
+        }
+        RecordingStore.Recording r = recordings.find(id).orElseThrow(() -> new NotFoundException("recording not found"));
+        // The record's medication names help the model hear drug names; nothing else is shared.
+        List<String> medications = fhir.loadContext(e.getPatientId()).medications();
+        return new Dtos.RecordingInfo(id, e.getStatus(), r.contentType(), r.sizeBytes(), medications);
+    }
+
+    @Transactional
+    public RecordingStore.Recording recordingAudio(UUID id, CurrentUser transcriber) {
+        RecordingStore.Recording r = recordings.find(id).orElseThrow(() -> new NotFoundException("recording not found"));
+        audit.record(transcriber, AuditAction.RECORDING_READ, id, null, Map.of("sizeBytes", r.sizeBytes()));
+        return r;
+    }
+
+    /**
+     * Stores a transcript and hands the encounter to drafting. Idempotent: only a TRANSCRIBING
+     * encounter accepts one, so a redelivered result is ignored. The recording is deleted in the
+     * same transaction, so audio is kept no longer than it is needed.
+     */
+    @Transactional
+    public void applyTranscript(UUID id, Dtos.TranscriptSubmission submission, CurrentUser transcriber) {
+        Encounter e = encounters.findForUpdate(id).orElseThrow(() -> new NotFoundException("encounter not found"));
+        if (e.getStatus() != EncounterStatus.TRANSCRIBING) {
+            log.info("Transcript for encounter {} ignored (status {})", id, e.getStatus());
+            return;
+        }
+        e.acceptTranscript(submission.transcript());
+        recordings.delete(id);
+        outbox.append(id, Topics.ENCOUNTER_CREATED, Events.EncounterCreated.of(id, e.getPatientId(), e.getDraftAttempt()));
+        audit.record(transcriber, AuditAction.TRANSCRIPT_RECEIVED, id, null,
+                Map.of("model", String.valueOf(submission.model()),
+                        "audioSeconds", submission.audioSeconds() == null ? 0 : submission.audioSeconds()));
+        metrics.transcribed(Duration.between(e.getCreatedAt(), e.getTranscribedAt()), submission.audioSeconds());
+        log.info("Encounter {} transcribed; drafting", id);
+    }
+
     // ---- Note worker (internal API) ----------------------------------------------------------
 
     public DraftContext draftContext(UUID id) {
@@ -216,7 +283,10 @@ public class EncounterService {
         e.acceptDraft(flags.size());
         audit.record(NOTE_WORKER, AuditAction.DRAFT_RECEIVED, id, 1,
                 Map.of("safetyFlags", flags.size(), "model", String.valueOf(event.model())));
-        metrics.draftReady(Duration.between(e.getCreatedAt(), e.getDraftedAt()), flags.size());
+        // The draft SLO starts when there is a transcript to draft from: upload for typed visits,
+        // the transcript's arrival for recorded ones (transcription has its own metric).
+        Instant from = e.getTranscribedAt() != null ? e.getTranscribedAt() : e.getCreatedAt();
+        metrics.draftReady(Duration.between(from, e.getDraftedAt()), flags.size());
         log.info("Encounter {} drafted with {} safety flag(s)", id, flags.size());
     }
 
@@ -242,7 +312,8 @@ public class EncounterService {
             return;
         }
         if ((Topics.ENCOUNTER_CREATED.equals(originalTopic) || Topics.NOTE_DRAFTED.equals(originalTopic))
-                && e.getStatus() == EncounterStatus.DRAFTING) {
+                && e.getStatus() == EncounterStatus.DRAFTING
+                || Topics.ENCOUNTER_RECORDED.equals(originalTopic) && e.getStatus() == EncounterStatus.TRANSCRIBING) {
             e.markDraftFailed(reason);
             audit.record(CurrentUser.SYSTEM, AuditAction.DRAFT_FAILED, id, null, Map.of("reason", reason, "topic", originalTopic));
             log.warn("Encounter {} marked DRAFT_FAILED: {}", id, reason);
@@ -271,7 +342,14 @@ public class EncounterService {
         switch (e.getStatus()) {
             case DRAFT_FAILED -> {
                 e.retryDraft();
-                outbox.append(id, Topics.ENCOUNTER_CREATED, Events.EncounterCreated.of(id, e.getPatientId(), e.getDraftAttempt()));
+                if (e.getStatus() == EncounterStatus.TRANSCRIBING) {
+                    if (!recordings.exists(id)) {
+                        throw new InvalidStateException("the recording is gone; upload the visit again");
+                    }
+                    outbox.append(id, Topics.ENCOUNTER_RECORDED, Events.EncounterRecorded.of(id, e.getPatientId(), e.getDraftAttempt()));
+                } else {
+                    outbox.append(id, Topics.ENCOUNTER_CREATED, Events.EncounterCreated.of(id, e.getPatientId(), e.getDraftAttempt()));
+                }
             }
             case APPROVED -> outbox.append(id, Topics.NOTE_APPROVED,
                     Events.NoteApproved.of(id, e.getPatientId(), e.getApprovedVersion(), e.getApprovedBy()));

@@ -2,6 +2,8 @@ package com.chartwise.encounter.events;
 
 public final class Topics {
     public static final String ENCOUNTER_CREATED = "encounter.created";
+    /** A visit uploaded as audio, waiting for the transcriber. */
+    public static final String ENCOUNTER_RECORDED = "encounter.recorded";
     public static final String NOTE_DRAFTED = "note.drafted";
     public static final String NOTE_APPROVED = "note.approved";
     /** Shared dead-letter topic. The original topic travels in the kafka_dlt-original-topic header. */

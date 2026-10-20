@@ -26,8 +26,9 @@ public class Encounter {
     @Column(name = "patient_name_ciphertext", nullable = false)
     private String patientName;
 
+    /** Null while a recording is being transcribed. */
     @Convert(converter = EncryptedStringConverter.class)
-    @Column(name = "transcript_ciphertext", nullable = false)
+    @Column(name = "transcript_ciphertext")
     private String transcript;
 
     @Enumerated(EnumType.STRING)
@@ -64,6 +65,9 @@ public class Encounter {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Column(name = "transcribed_at")
+    private Instant transcribedAt;
+
     @Column(name = "drafted_at")
     private Instant draftedAt;
 
@@ -83,10 +87,24 @@ public class Encounter {
         this.patientName = patientName;
         this.transcript = transcript;
         this.createdBy = createdBy;
-        this.status = EncounterStatus.DRAFTING;
+        this.status = transcript == null ? EncounterStatus.TRANSCRIBING : EncounterStatus.DRAFTING;
         this.draftAttempt = 1;
         this.createdAt = now;
         this.updatedAt = now;
+    }
+
+    /** A visit uploaded as audio: no transcript until the transcriber delivers one. */
+    public static Encounter fromRecording(String patientId, String patientName, String createdBy) {
+        return new Encounter(patientId, patientName, null, createdBy);
+    }
+
+    public void acceptTranscript(String text) {
+        requireStatus(EncounterStatus.TRANSCRIBING);
+        this.transcript = text;
+        this.status = EncounterStatus.DRAFTING;
+        this.transcribedAt = Instant.now();
+        this.failureReason = null;
+        touch();
     }
 
     public void acceptDraft(int flagCount) {
@@ -123,7 +141,9 @@ public class Encounter {
     }
 
     public void markDraftFailed(String reason) {
-        requireStatus(EncounterStatus.DRAFTING);
+        if (status != EncounterStatus.TRANSCRIBING) {
+            requireStatus(EncounterStatus.DRAFTING);
+        }
         this.status = EncounterStatus.DRAFT_FAILED;
         this.failureReason = reason;
         touch();
@@ -134,9 +154,10 @@ public class Encounter {
         touch();
     }
 
+    /** Back to TRANSCRIBING if transcription is what failed, otherwise to DRAFTING. */
     public void retryDraft() {
         requireStatus(EncounterStatus.DRAFT_FAILED);
-        this.status = EncounterStatus.DRAFTING;
+        this.status = transcript == null ? EncounterStatus.TRANSCRIBING : EncounterStatus.DRAFTING;
         this.draftAttempt += 1;
         this.failureReason = null;
         touch();
@@ -167,6 +188,7 @@ public class Encounter {
     public String getFhirDocumentId() { return fhirDocumentId; }
     public String getFailureReason() { return failureReason; }
     public Instant getCreatedAt() { return createdAt; }
+    public Instant getTranscribedAt() { return transcribedAt; }
     public Instant getDraftedAt() { return draftedAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }

@@ -1,6 +1,11 @@
 spring:
   application:
     name: encounter-service
+  servlet:
+    multipart:
+      # Visit recordings: about 25 minutes of 16 kHz two-channel WAV, far longer compressed.
+      max-file-size: 100MB
+      max-request-size: 100MB
   threads:
     virtual:
       enabled: true
@@ -95,5 +100,6 @@ chartwise:
     enabled: ${SEED_USERS:true}
     password: ${SEED_PASSWORD:chartwise-dev}
     worker-password: ${WORKER_PASSWORD:chartwise-worker-dev}
+    transcriber-password: ${TRANSCRIBER_PASSWORD:chartwise-transcriber-dev}
   slo:
     draft-latency-target: ${DRAFT_SLO:30s}

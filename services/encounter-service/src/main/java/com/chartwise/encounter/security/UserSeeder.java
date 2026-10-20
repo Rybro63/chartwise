@@ -36,6 +36,9 @@ public class UserSeeder implements ApplicationRunner {
         seed("scribe", password, Role.SCRIBE, "Demo Scribe");
         seed("admin", password, Role.ADMIN, "Demo Admin");
         seed("note-worker", properties.seed().workerPassword(), Role.SERVICE, "Note Worker");
+        if (properties.seed().transcriberPassword() != null) {
+            seed("transcriber", properties.seed().transcriberPassword(), Role.SERVICE, "Transcriber");
+        }
     }
 
     private void seed(String username, String password, Role role, String displayName) {

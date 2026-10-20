@@ -27,7 +27,7 @@ public record ChartwiseProperties(
 
     public record Retention(int days, String cron) {}
 
-    public record Seed(boolean enabled, String password, String workerPassword) {}
+    public record Seed(boolean enabled, String password, String workerPassword, String transcriberPassword) {}
 
     public record Slo(Duration draftLatencyTarget) {}
 }

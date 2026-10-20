@@ -2,6 +2,9 @@ package com.chartwise.encounter.audit;
 
 public enum AuditAction {
     ENCOUNTER_CREATED,
+    RECORDING_UPLOADED,
+    RECORDING_READ,
+    TRANSCRIPT_RECEIVED,
     ENCOUNTER_VIEWED,
     NOTE_VERSION_VIEWED,
     DRAFT_CONTEXT_READ,

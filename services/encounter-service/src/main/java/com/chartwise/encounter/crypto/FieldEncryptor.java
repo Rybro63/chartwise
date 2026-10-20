@@ -75,6 +75,15 @@ public class FieldEncryptor {
     }
 
     public byte[] encrypt(String plaintext) {
+        return plaintext == null ? null : encryptBytes(plaintext.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public String decrypt(byte[] stored) {
+        byte[] plain = decryptBytes(stored);
+        return plain == null ? null : new String(plain, StandardCharsets.UTF_8);
+    }
+
+    public byte[] encryptBytes(byte[] plaintext) {
         if (plaintext == null) {
             return null;
         }
@@ -87,14 +96,14 @@ public class FieldEncryptor {
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             cipher.init(Cipher.ENCRYPT_MODE, key.key(), new GCMParameterSpec(TAG_BITS, iv));
             cipher.updateAAD(header);
-            byte[] sealed = cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8));
+            byte[] sealed = cipher.doFinal(plaintext);
             return ByteBuffer.allocate(header.length + IV_BYTES + sealed.length).put(header).put(iv).put(sealed).array();
         } catch (GeneralSecurityException e) {
             throw new IllegalStateException("encryption failed", e);
         }
     }
 
-    public String decrypt(byte[] stored) {
+    public byte[] decryptBytes(byte[] stored) {
         if (stored == null) {
             return null;
         }
@@ -116,23 +125,21 @@ public class FieldEncryptor {
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(TAG_BITS, stored, headerLength, IV_BYTES));
             cipher.updateAAD(stored, 0, headerLength);
-            byte[] plain = cipher.doFinal(stored, headerLength + IV_BYTES, stored.length - headerLength - IV_BYTES);
-            return new String(plain, StandardCharsets.UTF_8);
+            return cipher.doFinal(stored, headerLength + IV_BYTES, stored.length - headerLength - IV_BYTES);
         } catch (GeneralSecurityException | RuntimeException e) {
             // Deliberately no detail: the message must never echo stored data.
             throw new IllegalStateException("decryption failed");
         }
     }
 
-    private String decryptV1(byte[] stored) {
+    private byte[] decryptV1(byte[] stored) {
         if (legacyKey == null || stored.length < 1 + IV_BYTES) {
             throw new IllegalStateException("decryption failed");
         }
         try {
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             cipher.init(Cipher.DECRYPT_MODE, legacyKey, new GCMParameterSpec(TAG_BITS, stored, 1, IV_BYTES));
-            byte[] plain = cipher.doFinal(stored, 1 + IV_BYTES, stored.length - 1 - IV_BYTES);
-            return new String(plain, StandardCharsets.UTF_8);
+            return cipher.doFinal(stored, 1 + IV_BYTES, stored.length - 1 - IV_BYTES);
         } catch (GeneralSecurityException e) {
             throw new IllegalStateException("decryption failed");
         }

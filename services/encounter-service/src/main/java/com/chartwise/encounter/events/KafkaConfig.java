@@ -21,6 +21,7 @@ public class KafkaConfig {
                             @Value("${chartwise.kafka.replicas:1}") int replicas) {
         return new KafkaAdmin.NewTopics(
                 TopicBuilder.name(Topics.ENCOUNTER_CREATED).partitions(partitions).replicas(replicas).build(),
+                TopicBuilder.name(Topics.ENCOUNTER_RECORDED).partitions(partitions).replicas(replicas).build(),
                 TopicBuilder.name(Topics.NOTE_DRAFTED).partitions(partitions).replicas(replicas).build(),
                 TopicBuilder.name(Topics.NOTE_APPROVED).partitions(partitions).replicas(replicas).build(),
                 TopicBuilder.name(Topics.DEAD_LETTER).partitions(partitions).replicas(replicas).build());

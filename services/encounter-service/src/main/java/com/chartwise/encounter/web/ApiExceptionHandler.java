@@ -1,6 +1,7 @@
 package com.chartwise.encounter.web;
 
 import com.chartwise.encounter.encounter.InvalidStateException;
+import com.chartwise.encounter.encounter.InvalidUploadException;
 import com.chartwise.encounter.encounter.NotFoundException;
 import com.chartwise.encounter.encounter.StaleVersionException;
 import com.chartwise.encounter.fhir.FhirUnavailableException;
@@ -12,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
@@ -37,6 +39,16 @@ public class ApiExceptionHandler {
             DataIntegrityViolationException.class})
     ProblemDetail concurrentUpdate(RuntimeException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "the encounter was changed concurrently; reload and retry");
+    }
+
+    @ExceptionHandler(InvalidUploadException.class)
+    ProblemDetail invalidUpload(InvalidUploadException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    ProblemDetail tooLarge(MaxUploadSizeExceededException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONTENT_TOO_LARGE, "the recording is larger than the upload limit");
     }
 
     @ExceptionHandler(FhirUnavailableException.class)
