@@ -78,6 +78,58 @@ resource "aws_iam_role_policy_attachment" "ebs_csi" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
 }
 
+# ---- PHI encryption ------------------------------------------------------------------------
+# Envelope encryption: the encounter service encrypts PHI fields with data keys and stores them
+# wrapped by this key, which never leaves KMS. Only the encounter service's pods may use it, and
+# only with its encryption context; every use is in CloudTrail.
+resource "aws_kms_key" "phi" {
+  description             = "${var.name}: wraps the data keys that encrypt PHI fields"
+  enable_key_rotation     = true
+  deletion_window_in_days = 7
+}
+
+resource "aws_kms_alias" "phi" {
+  name          = "alias/${var.name}-phi"
+  target_key_id = aws_kms_key.phi.key_id
+}
+
+resource "aws_iam_role" "encounter_service" {
+  name = "${var.name}-encounter-service"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "pods.eks.amazonaws.com" }
+      Action    = ["sts:AssumeRole", "sts:TagSession"]
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "encounter_service_kms" {
+  role = aws_iam_role.encounter_service.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["kms:GenerateDataKey", "kms:Decrypt"]
+      Resource = aws_kms_key.phi.arn
+      Condition = {
+        StringEquals = {
+          "kms:EncryptionContext:service" = "chartwise-encounter"
+          "kms:EncryptionContext:purpose" = "phi-fields"
+        }
+      }
+    }]
+  })
+}
+
+resource "aws_eks_pod_identity_association" "encounter_service" {
+  cluster_name    = module.eks.cluster_name
+  namespace       = "chartwise"
+  service_account = "encounter-service"
+  role_arn        = aws_iam_role.encounter_service.arn
+}
+
 # ---- PostgreSQL (RDS) ----------------------------------------------------------------------
 resource "random_password" "db" {
   length  = 32

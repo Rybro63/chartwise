@@ -10,6 +10,15 @@ resources:
   - ../../infra/core
   - db-init.yaml
   - storageclass.yaml
+  - encounter-service-account.yaml
+patches:
+  # The encounter service runs as its own service account, which EKS Pod Identity maps to the IAM
+  # role allowed to use the PHI KMS key (deploy/terraform/aws). Other pods get no KMS access.
+  - target: { kind: Deployment, name: encounter-service }
+    patch: |-
+      - op: add
+        path: /spec/template/spec/serviceAccountName
+        value: encounter-service
 configMapGenerator:
   - name: chartwise-config
     behavior: merge

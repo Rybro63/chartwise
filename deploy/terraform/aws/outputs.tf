@@ -15,6 +15,10 @@ output "db_password" {
   sensitive = true
 }
 
+output "phi_kms_key_arn" {
+  value = aws_kms_key.phi.arn
+}
+
 output "ecr_registry" {
   value = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com"
 }

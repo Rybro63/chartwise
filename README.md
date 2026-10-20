@@ -104,7 +104,10 @@ One trace follows all of this across Java, Kafka, Python and Go (17 spans, 3 ser
   means rewritten. It goes to a Prometheus histogram, a Grafana panel and the approval's audit
   entry, as numbers only. In real use this is the quality signal that matters most: how much
   work the draft saved the clinician.
-- **HIPAA-minded defaults.** PHI is encrypted at rest (with a key-version byte for rotation). The
+- **HIPAA-minded defaults.** PHI is encrypted at rest with envelope encryption: each field is
+  encrypted with a data key that is stored beside it wrapped by a key-encryption key (AWS KMS on
+  EKS, scoped to the encounter service's pods and an encryption context; a local key in
+  development). Data keys rotate hourly or every 100,000 fields, and older rows keep reading. The
   LLM gets only what it needs. The audit log is append-only, enforced by a Postgres trigger that
   rejects `UPDATE`, `DELETE` and `TRUNCATE`. Logs carry IDs only, and canary tests in Java and
   Python fail if a transcript or note appears in log output. A retention job purges finished
@@ -416,4 +419,6 @@ docs/results/          Measured results (JSON + charts)
   every note.
 - Each gateway replica has its own circuit breaker (the rate limit is shared through Redis).
 - Local Kafka is a single broker, and the AWS plan keeps Kafka in-cluster to control cost.
-- Transcript keys come from configuration; production would use a KMS with envelope encryption.
+- The KMS envelope-encryption path is unit-tested against a stub KMS and the Terraform validates,
+  but it has not been deployed: the recorded AWS run predates it. Locally the same envelope code
+  runs with ENCRYPTION_KEY as the key-encryption key.

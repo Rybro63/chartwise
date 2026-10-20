@@ -11,6 +11,7 @@ cat > "$HERE/rds.env" <<ENV
 DB_HOST=$HOST
 DB_URL=jdbc:postgresql://$HOST:5432/chartwise?sslmode=require
 HAPI_DB_URL=jdbc:postgresql://$HOST:5432/hapi?sslmode=require
+KMS_KEY_ID=$(terraform -chdir="$TF" output -raw phi_kms_key_arn)
 ENV
 OUT="$HERE/../aws-rendered"
 mkdir -p "$OUT"

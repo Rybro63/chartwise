@@ -15,7 +15,11 @@ public record ChartwiseProperties(
 
     public record Jwt(String secret, Duration ttl) {}
 
-    public record Crypto(String key) {}
+    /**
+     * key: base64 AES-256 key. Wraps data keys when there is no KMS key, and always reads rows
+     * written before envelope encryption. kmsKeyId: AWS KMS key that wraps data keys instead.
+     */
+    public record Crypto(String key, String kmsKeyId, Long dataKeyMaxUses, Duration dataKeyMaxAge) {}
 
     public record Fhir(String baseUrl, Duration connectTimeout, Duration socketTimeout) {}
 

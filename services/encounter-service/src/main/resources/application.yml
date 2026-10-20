@@ -77,6 +77,10 @@ chartwise:
   crypto:
     # Dev-only default. Deployments must set ENCRYPTION_KEY (base64, exactly 32 bytes).
     key: ${ENCRYPTION_KEY:ZGV2LW9ubHktY2hhcnR3aXNlLWFlcy1rZXktMzJieXQ=}
+    # Set on AWS: data keys then come from KMS (envelope encryption), not from ENCRYPTION_KEY.
+    kms-key-id: ${KMS_KEY_ID:}
+    data-key-max-uses: 100000
+    data-key-max-age: 1h
   fhir:
     base-url: ${FHIR_BASE_URL:http://localhost:8090/fhir}
     connect-timeout: 5s
