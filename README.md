@@ -221,9 +221,12 @@ That is the failure profile of a model that copies instead of documenting
 An [LLM judge](services/note-worker/eval/judge.py) (`--judge`) checks everything the answer key
 didn't plant: it labels every sentence of a note as supported, unsupported or contradicted by the
 transcript and record, and lists what the note left out. It runs through the gateway on a fixed
-model, so the drafting model can change while the judge doesn't. How far to trust the judge is
-itself measured, against a clinician's labels on the same sentences
-([gold.py](services/note-worker/eval/gold.py)).
+model, so the drafting model can change while the judge doesn't. How far to trust the judge has
+to be measured against a clinician's labels on the same sentences
+([gold.py](services/note-worker/eval/gold.py)). A gold set of 358 sentences from 10 notes is
+[ready to label](services/note-worker/eval/gold/) (the judge's labels are hidden; notes it flagged
+are included so the set contains problems at all). **It has not been labelled yet, so no judge
+number below has a measured error rate.**
 
 **Real Claude, before and after source links.** The same 20 visits, drafted by `claude-opus-5-5`
 and judged by `claude-opus-5-5`:

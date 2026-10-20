@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """A human gold set for the LLM judge: how often does the judge agree with a clinician?
 
-1. export: pick notes from a judged eval run and write them out for blind labelling, with the
-   judge's labels left out so they can't anchor the human:
+1. export: pick notes from judged eval runs and write them out for blind labelling, with the
+   judge's labels left out so they can't anchor the human. Notes where the judge found a problem
+   come first (good notes vastly outnumber bad ones, and a gold set with no problems in it can't
+   tell whether the judge catches them), then random others:
      eval/gold/labels.csv   one row per note sentence; fill in "label" (supported, unsupported or
                             contradicted, by the same definitions the judge gets) and optionally
                             "comment"
@@ -11,8 +13,8 @@
 2. agree: compare the filled-in labels with the judge's and report Cohen's kappa, per-label
    precision and recall, and the confusion matrix (docs/results/judge-agreement.json).
 
-    .venv/bin/python eval/gold.py export --run ../../docs/results/note-eval-opus-5-5-soap-v2.json --notes 10
-    .venv/bin/python eval/gold.py agree  --run ../../docs/results/note-eval-opus-5-5-soap-v2.json
+    .venv/bin/python eval/gold.py export --run ../../docs/results/note-eval-opus-5-5-soap-v{1,2}.json --notes 10
+    .venv/bin/python eval/gold.py agree  --run ../../docs/results/note-eval-opus-5-5-soap-v{1,2}.json
 
 All of it is synthetic data, so the files can be committed.
 """
@@ -43,11 +45,16 @@ def judged_notes(run: dict) -> list[dict]:
     return [n for n in run["notes"] if n.get("judge") and "sentences" in n["judge"]]
 
 
-def export(run_path: Path, count: int, seed: int) -> None:
-    notes = judged_notes(json.loads(run_path.read_text()))
+def export(run_paths: list[Path], count: int, seed: int) -> None:
+    notes = [n for p in run_paths for n in judged_notes(json.loads(p.read_text()))]
     if not notes:
-        raise SystemExit("That run has no judge labels. Run run_note_eval.py with --judge first.")
-    picked = sorted(random.Random(seed).sample(notes, min(count, len(notes))), key=lambda n: n["encounter_id"])
+        raise SystemExit("Those runs have no judge labels. Run run_note_eval.py with --judge first.")
+    rng = random.Random(seed)
+    flagged = [n for n in notes if any(s["label"] != "supported" for s in n["judge"]["sentences"])]
+    rest = [n for n in notes if n not in flagged]
+    picked = rng.sample(flagged, min(count, len(flagged)))
+    picked += rng.sample(rest, min(count - len(picked), len(rest)))
+    rng.shuffle(picked)  # so the labeller can't tell which ones the judge flagged by position
     GOLD.mkdir(exist_ok=True)
 
     with (GOLD / "labels.csv").open("w", newline="") as f:
@@ -57,7 +64,7 @@ def export(run_path: Path, count: int, seed: int) -> None:
             for s in note["judge"]["sentences"]:
                 w.writerow([f"N{i}:{note['encounter_id']}", s["n"], s["section"], s["text"], "", ""])
 
-    out = [f"# Gold set: {len(picked)} notes from {run_path.name}\n", DEFINITIONS, ""]
+    out = [f"# Gold set: {len(picked)} notes from {', '.join(p.name for p in run_paths)}\n", DEFINITIONS, ""]
     for i, note in enumerate(picked, 1):
         r = note["record"]
         out += [f"\n## N{i}\n", f"Record: {r.get('ageYears')} y, {r.get('gender')}. "
@@ -106,8 +113,8 @@ def agreement(pairs: list[tuple[str, str]]) -> dict:
     }
 
 
-def agree(run_path: Path, labels_path: Path) -> None:
-    judge = {(n["encounter_id"], s["n"]): s["label"] for n in judged_notes(json.loads(run_path.read_text()))
+def agree(run_paths: list[Path], labels_path: Path) -> None:
+    judge = {(n["encounter_id"], s["n"]): s["label"] for p in run_paths for n in judged_notes(json.loads(p.read_text()))
              for s in n["judge"]["sentences"]}
     pairs, skipped = [], 0
     with labels_path.open() as f:
@@ -120,7 +127,7 @@ def agree(run_path: Path, labels_path: Path) -> None:
             pairs.append((label, judge[key]))
     if not pairs:
         raise SystemExit(f"No labelled rows in {labels_path} yet.")
-    result = {"run": run_path.name, "labelled_by": "human", "skipped_rows": skipped, **agreement(pairs)}
+    result = {"runs": [p.name for p in run_paths], "labelled_by": "human", "skipped_rows": skipped, **agreement(pairs)}
     out = RESULTS / "judge-agreement.json"
     out.write_text(json.dumps(result, indent=2) + "\n")
     print(f"{result['sentences']} sentences: raw agreement {result['raw_agreement']:.1%}, "
@@ -134,17 +141,17 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
     e = sub.add_parser("export")
-    e.add_argument("--run", required=True)
+    e.add_argument("--run", required=True, nargs="+")
     e.add_argument("--notes", type=int, default=10)
     e.add_argument("--seed", type=int, default=1)
     a = sub.add_parser("agree")
-    a.add_argument("--run", required=True)
+    a.add_argument("--run", required=True, nargs="+")
     a.add_argument("--labels", default=str(GOLD / "labels.csv"))
     args = ap.parse_args()
     if args.cmd == "export":
-        export(Path(args.run), args.notes, args.seed)
+        export([Path(r) for r in args.run], args.notes, args.seed)
     else:
-        agree(Path(args.run), Path(args.labels))
+        agree([Path(r) for r in args.run], Path(args.labels))
 
 
 if __name__ == "__main__":
