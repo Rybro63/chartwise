@@ -184,6 +184,25 @@ produced exactly that false positive (see [below](#real-claude)).
 
 ![Safety eval](docs/results/safety-eval.png)
 
+### Note quality
+
+The safety check above is tested on injected errors. This measures the notes the pipeline
+actually drafts. [`messy.py`](tools/transcripts/messy.py) builds realistic visits from the Synthea
+records: small talk, a duration the patient corrects, a dose the clinician corrects mid-sentence
+("forty, sorry, twenty milligrams"), a drug the patient quietly stopped, a drug offered and
+declined, a relative's medication, a penicillin allergy that rules out amoxicillin, a blood
+pressure recheck, filler words, crosstalk and speech-to-text misspellings. Every visit carries an
+answer key: the facts a faithful note must state, and the distractors it must leave out.
+[`run_note_eval.py`](services/note-worker/eval/run_note_eval.py) (`make eval-notes`) sends the
+visits through the running stack and [grades](services/note-worker/eval/grading.py) each draft
+sentence by sentence.
+
+As a check that the grader can tell a good note from a bad one: the fake provider, which pastes
+the conversation into the note, states 84.9% of the required facts but includes 61.9% of the
+distractors (small talk in all 20 notes, the corrected dose, the declined drug as if started).
+That is the failure profile of a model that copies instead of documenting
+([note-eval-fake.json](docs/results/note-eval-fake.json), 20 visits).
+
 ### Real Claude
 
 `chaos/live_claude.py`: the same 20 synthetic visits sent through the whole pipeline with the

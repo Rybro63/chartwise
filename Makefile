@@ -44,6 +44,8 @@ proto: ## Regenerate gRPC stubs (Go + Python)
 # ---- experiments (stack must be running and seeded) ----
 eval: ## Safety-check mutation eval -> docs/results/safety-eval.*
 	cd services/note-worker && .venv/bin/python eval/run_safety_eval.py
+eval-notes: ## Grade drafted notes against the visits' answer keys -> docs/results/note-eval-$(LABEL).json
+	cd services/note-worker && .venv/bin/python eval/run_note_eval.py --count $${COUNT:-20} --label $${LABEL:-run}
 chaos-kill-worker: ## SIGKILL the worker mid-batch; verify nothing lost or duplicated
 	cd chaos && ../$(PY) kill_worker.py --count 200
 chaos-llm-outage: ## 60 s LLM outage under load; breaker opens, backlog drains
