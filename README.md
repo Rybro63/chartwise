@@ -64,6 +64,8 @@ flowchart LR
 
 One trace follows all of this across Java, Kafka, Python and Go (17 spans, 3 services in Jaeger).
 
+![Show sources: a real Claude Opus 5.5 draft of a synthetic visit; selecting a sentence highlights the transcript lines it cites](docs/screenshots/sources.png)
+
 ### Design decisions worth asking about
 
 - **Transactional outbox.** The encounter row and its event commit or roll back together, so an
