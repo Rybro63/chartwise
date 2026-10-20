@@ -160,9 +160,10 @@ public class EncounterService {
         }
         e.approve(version, user.username());
         outbox.append(id, Topics.NOTE_APPROVED, Events.NoteApproved.of(id, e.getPatientId(), version, user.username()));
+        Map<String, Double> editRatios = editRatios(id, version);
         audit.record(user, AuditAction.NOTE_APPROVED, id, version,
-                Map.of("aiDraftUnchanged", version == 1, "humanVersions", version - 1));
-        metrics.noteApproved();
+                Map.of("aiDraftUnchanged", version == 1, "humanVersions", version - 1, "editRatio", editRatios));
+        metrics.noteApproved(editRatios);
         log.info("Encounter {} approved at v{} by {}", id, version, user.username());
         return EncounterSummary.of(e);
     }
@@ -293,6 +294,17 @@ public class EncounterService {
 
     private List<SafetyFlag> flags(NoteVersion v) {
         return json.readValue(v.getSafetyFlagsJson(), FLAG_LIST);
+    }
+
+    /** How much of the AI draft (v1) the approved version changed; empty if there is no AI draft. */
+    private Map<String, Double> editRatios(UUID id, int approvedVersion) {
+        var aiDraft = versions.findByEncounterIdAndVersion(id, 1).filter(v -> v.getAuthorType() == AuthorType.AI);
+        var approved = versions.findByEncounterIdAndVersion(id, approvedVersion);
+        if (aiDraft.isEmpty() || approved.isEmpty()) {
+            return Map.of();
+        }
+        return EditStats.bySection(json.readValue(aiDraft.get().getContentJson(), SoapNote.class),
+                json.readValue(approved.get().getContentJson(), SoapNote.class));
     }
 
     private static List<String> changedSections(SoapNote a, SoapNote b) {

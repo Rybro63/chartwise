@@ -92,6 +92,11 @@ One trace follows all of this across Java, Kafka, Python and Go (17 spans, 3 ser
 - **The gateway fails fast and the worker waits patiently.** The breaker rejects calls within
   milliseconds while the provider is down. The worker keeps retrying for up to 10 minutes, so an
   outage shows up as Kafka backlog that drains afterwards, not as failed drafts.
+- **How much of the draft survives review.** At approval the encounter service compares the AI
+  draft (v1) with the approved version word by word, per section: 0 means signed as drafted, 1
+  means rewritten. It goes to a Prometheus histogram, a Grafana panel and the approval's audit
+  entry, as numbers only. In real use this is the quality signal that matters most: how much
+  work the draft saved the clinician.
 - **HIPAA-minded defaults.** PHI is encrypted at rest (with a key-version byte for rotation). The
   LLM gets only what it needs. The audit log is append-only, enforced by a Postgres trigger that
   rejects `UPDATE`, `DELETE` and `TRUNCATE`. Logs carry IDs only, and canary tests in Java and
@@ -316,8 +321,9 @@ set with `LLM_MODEL`; `ANTHROPIC_WORKSPACE_ID` is optional). Then
 
 ```bash
 make test            # everything below
-make test-java       # 12 tests; Testcontainers Postgres + Kafka: full flow, duplicate delivery,
-                     #   outbox rollback, dead letters, roles, audit trigger, retention, PHI log canary
+make test-java       # 16 tests; Testcontainers Postgres + Kafka: full flow, duplicate delivery,
+                     #   outbox rollback, dead letters, roles, audit trigger, retention, PHI log canary,
+                     #   encrypted draft sources, edit ratios
 make test-go         # breaker state machine, Redis token bucket, retries, gRPC server (bufconn)
 make test-python     # safety check, parsing, PHI log canary, gateway retry, Kafka crash test
 make test-web        # diff algorithm, lint, typecheck, build

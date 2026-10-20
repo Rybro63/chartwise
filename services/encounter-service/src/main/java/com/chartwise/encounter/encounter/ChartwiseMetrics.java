@@ -2,9 +2,11 @@ package com.chartwise.encounter.encounter;
 
 import com.chartwise.encounter.config.ChartwiseProperties;
 import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.time.Duration;
+import java.util.Map;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -13,7 +15,6 @@ public class ChartwiseMetrics {
     private final MeterRegistry registry;
     private final Timer draftLatency;
     private final Counter encountersCreated;
-    private final Counter notesApproved;
     private final Counter notesFiled;
 
     public ChartwiseMetrics(MeterRegistry registry, ChartwiseProperties properties) {
@@ -28,7 +29,6 @@ public class ChartwiseMetrics {
                         Duration.ofSeconds(45), Duration.ofSeconds(60), Duration.ofSeconds(120), Duration.ofSeconds(300))
                 .register(registry);
         this.encountersCreated = Counter.builder("chartwise.encounters.submitted").register(registry);
-        this.notesApproved = Counter.builder("chartwise.notes.approved").register(registry);
         this.notesFiled = Counter.builder("chartwise.notes.filed").register(registry);
     }
 
@@ -38,7 +38,21 @@ public class ChartwiseMetrics {
     }
 
     public void encounterCreated() { encountersCreated.increment(); }
-    public void noteApproved() { notesApproved.increment(); }
+    /**
+     * Records an approval and how much the reviewer changed the AI draft first (EditStats: 0 =
+     * approved as drafted, 1 = rewritten), per section and for the whole note.
+     */
+    public void noteApproved(Map<String, Double> editRatios) {
+        boolean edited = editRatios.getOrDefault("note", 0.0) > 0;
+        registry.counter("chartwise.notes.approved", "edited", String.valueOf(edited)).increment();
+        editRatios.forEach((section, ratio) -> DistributionSummary.builder("chartwise.note.edit.ratio")
+                .description("Share of the AI draft changed before approval (0 untouched, 1 rewritten)")
+                .tag("section", section)
+                // 0.001 catches "approved as drafted" (boundaries must be above 0).
+                .serviceLevelObjectives(0.001, 0.05, 0.1, 0.25, 0.5, 0.75, 1.0)
+                .register(registry)
+                .record(ratio));
+    }
     public void noteFiled() { notesFiled.increment(); }
 
     public void deadLetter(String originalTopic) {

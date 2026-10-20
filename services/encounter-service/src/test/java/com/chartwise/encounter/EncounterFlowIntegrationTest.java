@@ -101,6 +101,14 @@ class EncounterFlowIntegrationTest extends IntegrationTestBase {
                         .contentType(MediaType.APPLICATION_JSON).content("{\"version\":2}"))
                 .andExpect(status().isOk());
 
+        // How much the scribe changed the AI draft is audited as numbers, never text.
+        String approvedDetail = jdbc.sql("select detail::text from audit_event where encounter_id = :id and action = 'NOTE_APPROVED'")
+                .param("id", id).query(String.class).single();
+        JsonNode editRatio = read(approvedDetail).get("editRatio");
+        assertThat(editRatio.get("subjective").asDouble()).isZero();
+        assertThat(editRatio.get("plan").asDouble()).isGreaterThan(0.0);
+        assertThat(approvedDetail).doesNotContain(CANARY_NOTE);
+
         // 7. note.approved -> FHIR DocumentReference -> FILED.
         awaitStatus(clinician, id, "FILED");
         assertThat(fhir.filed).anySatisfy(n -> {
