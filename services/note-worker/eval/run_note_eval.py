@@ -123,11 +123,13 @@ def run_judge(rows: list[dict], model: str) -> dict:
     client = GatewayClient(GATEWAY, JUDGE_CLIENT, deadline_s=300, retry_budget_s=900)
     before = token_counters()
     for i, row in enumerate(r for r in rows if r["note"]):
-        try:
-            row["judge"] = judging.judge(client, request_id=row["encounter_id"], note=row["note"],
-                                         transcript=row["transcript"], record=row["record"], model=model).to_dict()
-        except judging.JudgeError as e:
-            row["judge"] = {"error": str(e)}
+        for attempt in (1, 2):  # one retry: a reply that skips sentences is usually a one-off
+            try:
+                row["judge"] = judging.judge(client, request_id=row["encounter_id"], note=row["note"],
+                                             transcript=row["transcript"], record=row["record"], model=model).to_dict()
+                break
+            except judging.JudgeError as e:
+                row["judge"] = {"error": str(e), "attempts": attempt}
         print(f"  judged {i + 1}", end="\r", flush=True)
     client.close()
     print()
@@ -213,6 +215,7 @@ def main() -> None:
     ap.add_argument("--offset", type=int, default=0, help="start position in the visits file")
     ap.add_argument("--label", default="run")
     ap.add_argument("--regrade", help="re-grade a saved results file instead of running visits")
+    ap.add_argument("--facts", help="with --regrade: take answer keys from this visits file (matched by transcript)")
     ap.add_argument("--judge", action="store_true", help="have the LLM judge label every note sentence")
     ap.add_argument("--judge-model", default=judging.JUDGE_MODEL)
     args = ap.parse_args()
@@ -222,6 +225,16 @@ def main() -> None:
         saved = json.loads(path.read_text())
         rows, label = saved["notes"], saved["summary"]["label"]
         usage = {f"{u['client']}/{u['model']}": u for u in saved["summary"].get("usage", [])}
+        if not usage and saved["summary"].get("input_tokens") is not None:  # files from before per-client usage
+            model = saved["summary"]["models"][0]
+            usage = {f"note-worker/{model}": {"client": "note-worker", "model": model,
+                                               "input_tokens": saved["summary"]["input_tokens"],
+                                               "output_tokens": saved["summary"]["output_tokens"],
+                                               "estimated_cost_usd": saved["summary"]["estimated_cost_usd"]}}
+        if args.facts:
+            keys = {v["transcript"]: v["facts"] for v in json.loads(Path(args.facts).read_text())}
+            for row in rows:
+                row["facts"] = keys[row["transcript"]]
     else:
         visits = json.loads(Path(args.visits).read_text())[args.offset: args.offset + args.count]
         if not visits or "facts" not in visits[0]:

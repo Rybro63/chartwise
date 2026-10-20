@@ -3,7 +3,9 @@
 Deterministic and inspectable. A note is split into sentences after normalisation (numbers as
 digits, "mg" for milligrams, "148/92" for "148 over 92"). Then:
 
-- an expected fact is found when one sentence contains an alternative from every keyword group;
+- an expected fact is found when one sentence, or two adjacent sentences on the same line
+  ("Sertraline was offered. The patient declined."), contain an alternative from every keyword
+  group;
 - a forbidden fact is violated when one sentence matches all its groups and contains none of its
   "unless" cues (so "sertraline was offered; patient declined" does not count as starting it).
 
@@ -87,6 +89,15 @@ def sentences(text: str) -> list[str]:
     return [normalise(s) for s in split_sentences(text)]
 
 
+def _windows(text: str) -> list[str]:
+    """Each sentence, and each pair of adjacent sentences on the same line."""
+    out = []
+    for line in text.splitlines():
+        ss = [normalise(s) for s in split_sentences(line)]
+        out += ss + [f"{a} {b}" for a, b in zip(ss, ss[1:])]
+    return out
+
+
 def _has(sentence: str, keyword: str) -> bool:
     # Keywords match at a word start and may be stems ("cardiolog"), but numbers must be whole:
     # "78" must not match "178" or "7.8".
@@ -118,15 +129,18 @@ class Grade:
 
 def grade(note: dict[str, str], facts: dict) -> Grade:
     """note: {"subjective", "objective", "assessment", "plan"}; facts: a visit's answer key."""
-    sents = [s for section in ("subjective", "objective", "assessment", "plan") for s in sentences(note.get(section) or "")]
+    sents = [(section, s) for section in ("subjective", "objective", "assessment", "plan")
+             for s in sentences(note.get(section) or "")]
+    windows = [w for section in ("subjective", "objective", "assessment", "plan") for w in _windows(note.get(section) or "")]
     result = Grade()
     for fact in facts["expected"]:
-        hit = next((s for s in sents if _matches(s, fact["all"])), None)
+        hit = next((w for w in windows if _matches(w, fact["all"])), None)
         result.expected.append({"id": fact["id"], "kind": fact["kind"], "text": fact["text"], "found": hit is not None,
                                 "sentence": hit})
     for fact in facts["forbidden"]:
-        hit = next((s for s in sents if _matches(s, fact["all"]) and not any(_has(s, u) for u in fact["unless"])),
-                   None)
+        scope = fact.get("sections")
+        hit = next((s for section, s in sents if (not scope or section in scope) and _matches(s, fact["all"])
+                    and not any(_has(s, u) for u in fact["unless"])), None)
         result.forbidden.append({"id": fact["id"], "kind": fact["kind"], "text": fact["text"], "violated": hit is not None,
                                  "sentence": hit})
     return result

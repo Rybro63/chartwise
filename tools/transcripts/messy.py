@@ -17,6 +17,8 @@ Every visit comes with "facts", the answer key a faithful note is graded against
 An expected fact is present when one sentence of the note contains at least one alternative from
 every group in "all". A forbidden fact is violated when one sentence matches "all" and contains
 none of the "unless" cues (for example "sertraline" + "start" without "declined" or "hold off").
+A forbidden fact with "sections" only counts in those note sections: the history may say the
+patient was taking 10 mg, but the plan must not keep them on it.
 Keywords are lower case and already normalised the way the grader normalises notes: numbers as
 digits, "mg" for milligrams, blood pressure as "148/92".
 
@@ -352,9 +354,12 @@ class _Visit:
     def expect(self, kind: str, text: str, groups: list[list[str]]) -> None:
         self.expected.append({"id": f"{kind}-{len(self.expected) + 1}", "kind": kind, "text": text, "all": groups})
 
-    def forbid(self, kind: str, text: str, groups: list[list[str]], unless: list[str] | None = None) -> None:
-        self.forbidden.append({"id": f"{kind}-{len(self.forbidden) + 1}", "kind": kind, "text": text, "all": groups,
-                               "unless": unless or []})
+    def forbid(self, kind: str, text: str, groups: list[list[str]], unless: list[str] | None = None,
+               sections: list[str] | None = None) -> None:
+        fact = {"id": f"{kind}-{len(self.forbidden) + 1}", "kind": kind, "text": text, "all": groups, "unless": unless or []}
+        if sections:
+            fact["sections"] = sections
+        self.forbidden.append(fact)
 
     def drug(self, name: str) -> str:
         """A drug name as spoken, then as speech-to-text heard it."""
@@ -393,8 +398,10 @@ def visit(record: dict, rng: random.Random) -> dict:
         v.say("Doctor", complaint.get("duration_question", "How long has this been going on?"))
         if rng.random() < 0.6:
             v.say("Patient", f"Maybe {said}? No, wait, more like {corrected}.", filler=0.3)
+            # Not the plan, where "for 10 days" is a course of treatment, not the history.
             v.forbid("superseded_duration", f"duration corrected from {said} to {corrected}", [[_norm_phrase(said)]],
-                     unless=[_norm_phrase(corrected)])
+                     unless=_duration_alternatives(corrected) + ["revis", "correct", "initial"],
+                     sections=["subjective", "objective", "assessment"])
         else:
             v.say("Patient", f"I'd say {corrected}, give or take.", filler=0.3)
         v.expect("duration", f"duration {corrected}", [_duration_alternatives(corrected)])
@@ -439,7 +446,7 @@ def visit(record: dict, rng: random.Random) -> dict:
             v.say("Patient", "Okay, if you think so.")
             v.expect("medication_change", f"{name} increased to {step} mg", [aliases(name), [f"{step} mg"]])
             v.forbid("stale_dose", f"{name} continued at the old {dose} mg", [aliases(name), [f"{dose} mg"]],
-                     unless=[f"{step} mg", "increas", "from", "previous", "titrat", "prior"])
+                     unless=[f"{step} mg", "increas", "from", "previous", "titrat", "prior"], sections=["plan"])
         elif not stopped_one and roll < 0.85:
             stopped_one = True
             reason = rng.choice(STOP_REASONS)
@@ -478,7 +485,11 @@ def visit(record: dict, rng: random.Random) -> dict:
         relative = rng.choice(RELATIVES)
         v.say("Patient", f"My {relative} takes {drug} and swears by it. Should I be on that?", filler=0.3)
         v.say("Doctor", "That's for a different problem, it wouldn't help you.")
-        v.forbid("relative_medication", f"{drug} is the patient's {relative}'s medication", [[drug]], unless=RELATIVE_WORDS)
+        # Recording that the patient asked about it is fine; saying they take it is not.
+        v.forbid("relative_medication", f"{drug} is the patient's {relative}'s medication",
+                 [[drug], ["takes", "taking", "continu", "current", "start", "prescrib", "on "]],
+                 unless=RELATIVE_WORDS + ["asked", "question", "not indicated", "not recommend", "would not", "wouldn't",
+                                          "declin", "not appropriate"])
         mentioned_drugs.add(drug)
 
     # Over-the-counter use.

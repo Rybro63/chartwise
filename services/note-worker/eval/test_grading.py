@@ -59,9 +59,28 @@ def test_superseded_dose_and_small_talk_are_violations():
     assert g.recall == 0.0
 
 
-def test_facts_must_be_in_one_sentence():
-    note = {"subjective": "", "objective": "HR elevated. Value was 78.", "assessment": "", "plan": ""}
-    assert not grade(note, FACTS).expected[2]["found"]
+def test_forbidden_fact_with_sections_only_counts_there():
+    facts = {"expected": [], "forbidden": [
+        {"id": "stale_dose-1", "kind": "stale_dose", "text": "lisinopril kept at 10 mg", "all": [["lisinopril"], ["10 mg"]],
+         "unless": ["20 mg"], "sections": ["plan"]}]}
+    history = {"subjective": "Taking lisinopril 10 mg every morning.", "objective": "", "assessment": "", "plan": ""}
+    assert grade(history, facts).violations == 0
+    plan = {**history, "plan": "Continue lisinopril 10 mg daily."}
+    assert grade(plan, facts).violations == 1
+
+
+def test_expected_facts_may_span_two_adjacent_sentences_on_a_line():
+    joined = {"subjective": "", "objective": "HR elevated. Value was 78.", "assessment": "", "plan": ""}
+    assert grade(joined, FACTS).expected[2]["found"]
+    apart = {**joined, "objective": "HR elevated.\nValue was 78."}
+    assert not grade(apart, FACTS).expected[2]["found"]
+    distant = {**joined, "objective": "HR elevated. Patient is well. Value was 78."}
+    assert not grade(distant, FACTS).expected[2]["found"]
+
+
+def test_forbidden_facts_must_be_in_one_sentence():
+    note = {"subjective": "", "objective": "", "assessment": "", "plan": "Sertraline was discussed. Start counseling."}
+    assert grade(note, FACTS).violations == 0
 
 
 def test_numbers_match_whole():
