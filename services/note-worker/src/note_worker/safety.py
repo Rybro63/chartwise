@@ -13,6 +13,11 @@ ALLERGY_CONFLICT (high)
     A medication being continued, started or changed that matches a recorded allergy, including
     by class (a penicillin allergy conflicts with amoxicillin).
 
+DOSE_MISMATCH (high)
+    A dose for a drug that nothing in the visit or the record gives for that drug, a dose the
+    clinician corrected while speaking, or a plan that keeps the previous dose after the visit
+    changed it (see doses.py). Checked in the note text and in the model's medication list.
+
 UNSUPPORTED_STATEMENT (medium)
     A statement that cites no transcript line and doesn't claim to come from the record (soap-v2
     asks the model to source every statement). Saying something was not documented needs no
@@ -25,15 +30,16 @@ Grounding is by drug identity, not string equality: brand and generic names are 
 ("Lipitor" in the transcript grounds "atorvastatin" in the note), and near-misspellings from
 speech-to-text ("lisinipril") still count as mentioned.
 
-Known limits (see the measured eval in eval/): it does not check doses, and it only recognises
-drugs in its lexicon or the patient's record.
+Known limits (see the measured eval in eval/): it only recognises drugs in its lexicon or the
+patient's record, and checks doses in mg and mcg only, not frequency or route.
 """
 
 import re
 from dataclasses import asdict, dataclass
 from difflib import SequenceMatcher
 
-from .drug_lexicon import ALL_NAMES, ALLERGY_CLASSES, canonical
+from . import doses
+from .drug_lexicon import ALL_NAMES, ALLERGY_CLASSES, FORM_WORDS, canonical
 from .soap import SoapDraft
 
 _WORD = re.compile(r"[a-z][a-z\-]+")
@@ -105,7 +111,7 @@ def check(draft: SoapDraft, *, transcript: str, record_medications: list[str], a
     grounded = record_words | allergy_words | transcript_words
 
     # Record drug names outside the lexicon (e.g. Synthea's less common drugs) are recognised too.
-    record_drug_names = {w for w in record_words if len(w) >= 5}
+    record_drug_names = {w for w in record_words if len(w) >= 5 and w not in FORM_WORDS}
 
     # Candidates: the model's own list, plus an independent scan of the note text.
     candidates: dict[str, tuple[str, str]] = {}  # canonical -> (as written, section)
@@ -135,6 +141,43 @@ def check(draft: SoapDraft, *, transcript: str, record_medications: list[str], a
                 f"'{drug}' is continued or started, but the patient has a recorded allergy ({conflict}).",
                 _section_of(drug, sections)))
 
+    flags += _dose_flags(draft, transcript, record_medications, record_drug_names)
+    return flags
+
+
+_SENTENCE = re.compile(r"(?<=[.!?;])\s+(?=\S)")
+
+
+def _dose_flags(draft: SoapDraft, transcript: str, record_medications: list[str], record_drug_names: set[str]) -> list[SafetyFlag]:
+    vocabulary = ALL_NAMES | record_drug_names
+    resolved: dict[str, str | None] = {}
+
+    def closest(word: str) -> str | None:
+        # Speech-to-text misspells drugs ("lisinipril"), so near-misses of long names count.
+        if word not in resolved:
+            resolved[word] = word if word in vocabulary else next(
+                (v for v in vocabulary if len(word) >= 7 and abs(len(v) - len(word)) <= 2 and v[0] == word[0]
+                 and SequenceMatcher(None, word, v).ratio() >= 0.85), None)
+        return resolved[word]
+
+    def drugs_in(text: str) -> list[tuple[int, str]]:
+        return [(m.start(), canonical(hit)) for m in _WORD.finditer(text) if (hit := closest(m.group(0)))]
+
+    evidence = doses.gather(transcript, record_medications, drugs_in)
+    problems: list[doses.DoseProblem] = []
+    for section, text in draft.sections().items():
+        for line in text.splitlines():
+            for sentence in _SENTENCE.split(line):
+                problems += doses.check_sentence(sentence, section, evidence, drugs_in)
+    for m in draft.medications_mentioned:
+        if m.dose.strip():
+            problems += doses.check_sentence(f"{m.name} {m.dose}", "medications_mentioned", evidence, drugs_in)
+
+    flags, seen = [], set()
+    for p in problems:
+        if (p.drug, p.dose, p.kind) not in seen:
+            seen.add((p.drug, p.dose, p.kind))
+            flags.append(SafetyFlag("DOSE_MISMATCH", "high", f"{p.drug} {p.dose}", p.message(), p.section))
     return flags
 
 

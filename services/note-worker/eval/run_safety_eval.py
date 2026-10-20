@@ -50,7 +50,11 @@ CATEGORIES = {
     "allergy_conflict": (True, True, "Draft starts a drug the patient is allergic to (by class)"),
     "misspelled_hallucination": (True, False, "Unmentioned drug, misspelled in the draft"),
     "unknown_drug": (True, False, "Unmentioned drug that is not in the lexicon (newer agents)"),
-    "wrong_dose": (True, False, "Correct drug, wrong dose"),
+    "clean_dose_from_record": (False, True, "Draft states the record's dose for a continued drug"),
+    "clean_dose_change_spoken": (False, True, "Dose change spoken in words; draft gives old and new dose in digits"),
+    "wrong_dose": (True, True, "Correct drug, a dose nobody stated"),
+    "corrected_dose": (True, True, "Draft uses the dose the clinician corrected mid-sentence"),
+    "stale_dose": (True, True, "Visit changed the dose; the plan keeps the previous one"),
 }
 
 # Real drugs deliberately absent from the lexicon, to measure its coverage limit.
@@ -125,8 +129,21 @@ def misspell(word: str, rng: random.Random) -> str:
     return word[:i] + word[i + 1:]  # drop one interior letter, e.g. warfarin -> warfrin
 
 
+def record_dose(profile: dict, drug: str) -> str | None:
+    for med in profile["medications"]:
+        parsed = transcripts.messy.parse_med(med)
+        if parsed and parsed["name"] == drug and parsed["dose"]:
+            return parsed["dose"]
+    return None
+
+
+def number(value: float) -> str:
+    return str(int(value)) if value.is_integer() else str(value)
+
+
 def build_cases(profiles: list[dict], visits_per_patient: int, seed: int) -> list[Case]:
     rng = random.Random(seed)
+    dose_rng = random.Random(seed + 1)  # separate, so the dose cases don't shift the other categories
     cases: list[Case] = []
     for profile in profiles:
         for _ in range(visits_per_patient):
@@ -152,7 +169,7 @@ def build_cases(profiles: list[dict], visits_per_patient: int, seed: int) -> lis
             add("clean_transcription_typo",
                 {**sections, "plan": sections["plan"] + " Ibuprofen 400 mg as needed for pain."},
                 meds + [{"name": "ibuprofen", "status": "mentioned"}],
-                transcript + "\nPatient: The ibuprofin helps a little.")
+                transcript + "\nPatient: The ibuprofin helps a little, I take four hundred milligrams.")
 
             allergen = rng.choice(["Penicillin V", "Aspirin", "Sulfamethoxazole"])
             add("clean_allergy_mention",
@@ -196,6 +213,26 @@ def build_cases(profiles: list[dict], visits_per_patient: int, seed: int) -> lis
                 add("wrong_dose", {**sections, "plan": sections["plan"].replace(f"Continue {d} at the current dose.",
                                                                                  f"Continue {d} 400 mg twice daily.")},
                     target=d)
+
+                current = record_dose(profile, d)
+                if current:
+                    old = float(current)
+                    new, wrong = number(old * 2), number(old * dose_rng.choice([3, 4]))
+                    spoken = transcripts.messy.NUMBER_WORDS.get(new, new)
+                    same = f"Continue {d} at the current dose."
+
+                    def with_plan(text):
+                        return {**sections, "plan": sections["plan"].replace(same, text)}
+
+                    add("clean_dose_from_record", with_plan(f"Continue {d} {current} mg daily."))
+                    change = f"\nDoctor: Let's increase the {d} to {spoken} milligrams."
+                    add("clean_dose_change_spoken", with_plan(f"Increase {d} from {current} mg to {new} mg daily."),
+                        transcript_=transcript + change)
+                    add("stale_dose", with_plan(f"Continue {d} {current} mg daily."), transcript_=transcript + change,
+                        target=d)
+                    add("corrected_dose", with_plan(f"Increase {d} to {wrong} mg daily."),
+                        transcript_=transcript + f"\nDoctor: Let's go up on the {d}, {wrong}, sorry, no, {spoken} milligrams.",
+                        target=d)
     return cases
 
 
@@ -203,7 +240,8 @@ def caught(case: Case, flags: list) -> bool:
     high = [f for f in flags if f.severity == "high"]
     if case.target is None:
         return bool(high)
-    return any(canonical(f.subject) == case.target or f.subject.lower() == case.target for f in high)
+    # DOSE_MISMATCH subjects read "simvastatin 20 mg": the drug is the first word.
+    return any(canonical(f.subject.split()[0]) == case.target or f.subject.lower() == case.target for f in high if f.subject)
 
 
 def main() -> None:

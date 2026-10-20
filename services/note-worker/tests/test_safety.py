@@ -41,12 +41,12 @@ def test_brand_name_is_resolved_to_generic():
 
 def test_brand_in_transcript_grounds_generic_in_note():
     # Patient said "Advil"; the note says "ibuprofen". Same drug, so no flag.
-    draft = make_draft(plan="Ibuprofen 400 mg as needed.", meds=[{"name": "ibuprofen", "status": "mentioned"}])
+    draft = make_draft(plan="Ibuprofen as needed.", meds=[{"name": "ibuprofen", "status": "mentioned"}])
     assert safety.check(draft, transcript=TRANSCRIPT, record_medications=RECORD, allergies=[]) == []
 
 
 def test_transcription_misspelling_still_grounds():
-    draft = make_draft(plan="Continue atorvastatin 20 mg.", meds=[{"name": "atorvastatin", "status": "continued"}])
+    draft = make_draft(plan="Continue atorvastatin.", meds=[{"name": "atorvastatin", "status": "continued"}])
     transcript = "Patient: I'm still on the atorvastattin."
     assert safety.check(draft, transcript=transcript, record_medications=[], allergies=[]) == []
 
@@ -59,7 +59,7 @@ def test_record_only_medication_is_grounded():
 def test_allergy_class_conflict():
     draft = make_draft(plan="Start amoxicillin 500 mg three times daily for 10 days.",
                        meds=[{"name": "amoxicillin", "status": "started"}])
-    transcript = "Doctor: I'll send in amoxicillin for the ear infection."
+    transcript = "Doctor: I'll send in amoxicillin, five hundred milligrams, for the ear infection."
     flags = safety.check(draft, transcript=transcript, record_medications=[], allergies=["Allergy to penicillin"])
     assert codes(flags) == [("ALLERGY_CONFLICT", "amoxicillin")]
 
@@ -100,3 +100,52 @@ def test_statement_without_any_source_is_flagged():
                             ("UNSUPPORTED_STATEMENT", "Continue lisinopril.")]
     assert {f.severity for f in flags} == {"medium"}
     assert [f.section for f in flags] == ["objective", "plan"]
+
+
+DOSE_RECORD = ["Simvastatin 10 MG Oral Tablet", "lisinopril 10 MG Oral Tablet"]
+DOSE_TRANSCRIPT = """Doctor: You're on the simvastatin, ten milligrams. Taking it every day?
+Patient: Every morning.
+Doctor: I'd like to go up on that. Let's do 40, sorry, no, twenty milligrams once a day.
+Patient: Okay.
+Doctor: And keep the lisinipril the same."""
+
+
+def dose_flags(plan: str, meds=None):
+    draft = make_draft(plan=plan, meds=meds if meds is not None else [])
+    return [(f.code, f.subject, f.section) for f in safety.check(draft, transcript=DOSE_TRANSCRIPT,
+                                                                   record_medications=DOSE_RECORD, allergies=[])]
+
+
+def test_doses_from_the_visit_or_record_pass():
+    assert dose_flags("Increase simvastatin from 10 mg to 20 mg daily.\nContinue lisinopril 10 mg daily.") == []
+    assert dose_flags("Simvastatin 20 mg once daily.") == []
+
+
+def test_dose_nobody_stated_is_flagged():
+    assert dose_flags("Continue lisinopril 40 mg daily.") == [("DOSE_MISMATCH", "lisinopril 40 mg", "plan")]
+
+
+def test_dose_corrected_while_speaking_is_flagged():
+    flags = dose_flags("Increase simvastatin to 40 mg daily.")
+    assert flags == [("DOSE_MISMATCH", "simvastatin 40 mg", "plan")]
+
+
+def test_plan_keeping_the_previous_dose_after_a_change_is_flagged():
+    assert dose_flags("Continue simvastatin 10 mg daily.") == [("DOSE_MISMATCH", "simvastatin 10 mg", "plan")]
+
+
+def test_previous_dose_in_the_history_is_fine():
+    draft = make_draft(subjective="Taking simvastatin 10 mg every morning.", plan="Simvastatin 20 mg daily.", meds=[])
+    assert safety.check(draft, transcript=DOSE_TRANSCRIPT, record_medications=DOSE_RECORD, allergies=[]) == []
+
+
+def test_dose_in_the_models_medication_list_is_checked():
+    flags = dose_flags("Simvastatin 20 mg daily.", meds=[{"name": "simvastatin", "status": "changed", "dose": "40 mg"}])
+    assert flags == [("DOSE_MISMATCH", "simvastatin 40 mg", "medications_mentioned")]
+
+
+def test_dose_messages_say_which_problem():
+    draft = make_draft(plan="Continue simvastatin 10 mg daily.", meds=[])
+    [flag] = safety.check(draft, transcript=DOSE_TRANSCRIPT, record_medications=DOSE_RECORD, allergies=[])
+    assert flag.severity == "high"
+    assert "previous dose" in flag.message

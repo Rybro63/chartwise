@@ -1,7 +1,7 @@
 {
   "summary": {
     "patients": 25,
-    "cases": 1184,
+    "cases": 1472,
     "recall_in_scope": 1.0,
     "false_positive_rate": 0.0,
     "precision_in_scope": 1.0
@@ -107,13 +107,49 @@
       "rate": 0.0
     },
     {
-      "category": "wrong_dose",
-      "description": "Correct drug, wrong dose",
-      "should_flag": true,
-      "in_scope": false,
-      "cases": 84,
+      "category": "clean_dose_from_record",
+      "description": "Draft states the record's dose for a continued drug",
+      "should_flag": false,
+      "in_scope": true,
+      "cases": 72,
       "flagged": 0,
       "rate": 0.0
+    },
+    {
+      "category": "clean_dose_change_spoken",
+      "description": "Dose change spoken in words; draft gives old and new dose in digits",
+      "should_flag": false,
+      "in_scope": true,
+      "cases": 72,
+      "flagged": 0,
+      "rate": 0.0
+    },
+    {
+      "category": "wrong_dose",
+      "description": "Correct drug, a dose nobody stated",
+      "should_flag": true,
+      "in_scope": true,
+      "cases": 84,
+      "flagged": 84,
+      "rate": 1.0
+    },
+    {
+      "category": "corrected_dose",
+      "description": "Draft uses the dose the clinician corrected mid-sentence",
+      "should_flag": true,
+      "in_scope": true,
+      "cases": 72,
+      "flagged": 72,
+      "rate": 1.0
+    },
+    {
+      "category": "stale_dose",
+      "description": "Visit changed the dose; the plan keeps the previous one",
+      "should_flag": true,
+      "in_scope": true,
+      "cases": 72,
+      "flagged": 72,
+      "rate": 1.0
     }
   ]
 }

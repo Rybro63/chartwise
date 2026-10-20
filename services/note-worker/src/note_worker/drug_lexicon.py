@@ -72,6 +72,14 @@ ALLERGY_CLASSES: dict[str, frozenset[str]] = {
 
 ALL_NAMES: frozenset[str] = GENERICS | frozenset(BRANDS)
 
+# Words in record medication names (Synthea/RxNorm style) that describe the form, not the drug.
+FORM_WORDS: frozenset[str] = frozenset("""
+tablet tablets capsule capsules extended release injection injectable solution suspension inhaler
+cream spray system powder inhalation metered actuat prefilled syringe injector chewable delayed
+hydrochloride sodium succinate tartrate potassium hyclate bitartrate topical mucosal transdermal
+oral human regular isophane inert ingredients abuse deterrent
+""".split())
+
 
 def canonical(name: str) -> str:
     """Maps a brand name to its generic; generics map to themselves."""

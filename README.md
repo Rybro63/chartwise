@@ -162,25 +162,28 @@ Uploads were accepted at full rate throughout. The draft SLO alert fired, as it 
 
 ### Safety check: what it catches and what it doesn't
 
-`make eval`: a mutation test over 1,184 drafts built from the 25 Synthea patients. Clean drafts
+`make eval`: a mutation test over 1,472 drafts built from the 25 Synthea patients. Clean drafts
 are derived from each transcript, then one known error of each kind is injected. The check runs
 unchanged.
 
 | | Cases | Flagged |
 |---|---|---|
-| Clean drafts (incl. brand vs generic, transcription typos, documented allergies) | 400 | **0%** (no false positives) |
+| Clean drafts (incl. brand vs generic, transcription typos, documented allergies, a record dose, a dose change spoken in words) | 544 | **0%** (no false positives) |
 | Hallucinated drug: generic, brand, missing from the model's own list, or claimed in the history | 400 | **100%** |
 | Drug started despite a class allergy (penicillin → amoxicillin) | 100 | **100%** |
+| Dose: one nobody stated, one the clinician corrected mid-sentence ("40, sorry, no, twenty milligrams"), or the plan keeping the old dose after a change | 228 | **100%** |
 | Out of scope: misspelled hallucination | 100 | 0% |
 | Out of scope: drug missing from the lexicon (for example, tirzepatide) | 100 | 0% |
-| Out of scope: right drug, wrong dose | 84 | 0% |
 
-Read the 100% carefully. The injected drugs come from the checker's own lexicon, so this shows the
-logic works across realistic records (brand/generic resolution, typo tolerance, scanning text the
-model left off its list), not that it catches every real-world error. The out-of-scope rows are
-the honest boundary: doses aren't checked, and coverage is only as good as the drug list (RxNorm
-would be the production answer). The documented-allergies row exists because real Claude output
-produced exactly that false positive (see [below](#real-claude)).
+Read the 100% carefully. The injected drugs come from the checker's own lexicon, and the dose
+errors follow patterns it was written for, so this shows the logic works across realistic records
+(brand/generic resolution, typo tolerance, spoken numbers, scanning text the model left off its
+list), not that it catches every real-world error. The out-of-scope rows are the honest boundary:
+coverage is only as good as the drug list (RxNorm would be the production answer), and doses are
+checked in mg and mcg, not frequency or route. The documented-allergies row exists because real
+Claude output produced exactly that false positive (see [below](#real-claude)). Adding the dose
+check also showed that one "clean" case had been inventing a dose all along ("ibuprofen 400 mg"
+when nobody said 400); the case now states the dose in the transcript.
 
 ![Safety eval](docs/results/safety-eval.png)
 
