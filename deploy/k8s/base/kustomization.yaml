@@ -9,4 +9,5 @@ resources:
   - encounter-service.yaml
   - llm-gateway.yaml
   - note-worker.yaml
+  - transcriber.yaml
   - review-app.yaml

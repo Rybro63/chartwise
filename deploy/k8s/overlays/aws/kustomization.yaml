@@ -41,3 +41,4 @@ images:
   - { name: chartwise/llm-gateway, newName: ECR_REGISTRY/chartwise/llm-gateway, newTag: latest }
   - { name: chartwise/note-worker, newName: ECR_REGISTRY/chartwise/note-worker, newTag: latest }
   - { name: chartwise/review-app, newName: ECR_REGISTRY/chartwise/review-app, newTag: latest }
+  - { name: chartwise/transcriber, newName: ECR_REGISTRY/chartwise/transcriber, newTag: latest }

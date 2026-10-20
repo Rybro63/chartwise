@@ -28,6 +28,7 @@ spec:
             - { name: ENCRYPTION_KEY, valueFrom: { secretKeyRef: { name: chartwise-secrets, key: ENCRYPTION_KEY } } }
             - { name: SEED_PASSWORD, valueFrom: { secretKeyRef: { name: chartwise-secrets, key: SEED_PASSWORD } } }
             - { name: WORKER_PASSWORD, valueFrom: { secretKeyRef: { name: chartwise-secrets, key: WORKER_PASSWORD } } }
+            - { name: TRANSCRIBER_PASSWORD, valueFrom: { secretKeyRef: { name: chartwise-secrets, key: TRANSCRIBER_PASSWORD } } }
           readinessProbe:
             httpGet: { path: /actuator/health/readiness, port: http }
             periodSeconds: 5

@@ -20,7 +20,7 @@ mkdir -p "$OUT"
   echo "kind: Kustomization"
   echo "resources: [../aws]"
   echo "images:"
-  for svc in encounter-service llm-gateway note-worker review-app; do
+  for svc in encounter-service llm-gateway note-worker review-app transcriber; do
     echo "  - { name: ECR_REGISTRY/chartwise/$svc, newName: $REGISTRY/chartwise/$svc, newTag: \"$TAG\" }"
   done
 } > "$OUT/kustomization.yaml"

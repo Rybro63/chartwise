@@ -28,6 +28,7 @@ review-app ──REST/JWT──▶ encounter-service ──▶ PostgreSQL (Flywa
                   GET /internal/encounters/{id}/draft-context          Redis token bucket
 ```
 
+- **Recordings:** `POST /api/encounters/recording` stores encrypted audio with status `TRANSCRIBING` and an ID-only `encounter.recorded` event. `services/transcriber` (Python, faster-whisper `base.en` baked into the image) fetches it from `/internal/encounters/{id}/recording[/audio]` as user `transcriber`, transcribes each channel (clinician left, patient right) by utterance, and POSTs `/transcript`; the encounter service deletes the audio and emits `encounter.created` in the same transaction. Mono audio gets "Speaker:" labels. Dead letters from `encounter.recorded` become `DRAFT_FAILED`; retry re-transcribes.
 - **Claim check:** `encounter.created` carries only IDs. The worker fetches transcript and patient context from `GET /internal/encounters/{id}/draft-context` (role `SERVICE`, user `note-worker`, audited). The context excludes name and identifiers.
 - **Status machine** (`Encounter`): `DRAFTING → IN_REVIEW → APPROVED → FILED`, plus `DRAFTING → DRAFT_FAILED`. An admin retry re-emits the event through the outbox.
 - **Note versions are immutable.** v1 is always the AI draft. Edits require `baseVersion` to equal the latest (409 otherwise). Approval names the exact version.
@@ -63,6 +64,10 @@ cd services/note-worker && .venv/bin/python -m pytest -q
 
 # review-app (React 19, TypeScript, Vite)
 cd apps/review-app && npm run dev    # proxies /api to localhost:8080
+
+# transcriber (Python; venv at services/transcriber/.venv)
+cd services/transcriber && .venv/bin/python -m pytest -q   # model tests download Whisper base.en once
+python3 tools/audio/synthesize.py --count 5                  # synthetic two-channel recordings (macOS say)
 npm test && npm run lint && npm run build
 npx vitest run src/lib/diff.test.ts
 

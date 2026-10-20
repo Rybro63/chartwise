@@ -56,7 +56,7 @@ services:
     entrypoint: ["/bin/bash", "-c"]
     command:
       - |
-        for t in encounter.created note.drafted note.approved chartwise.dead-letter; do
+        for t in encounter.created encounter.recorded note.drafted note.approved chartwise.dead-letter; do
           /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic $$t --partitions 6 --replication-factor 1
         done
     restart: "no"
@@ -146,6 +146,18 @@ services:
       CONCURRENCY: ${WORKER_CONCURRENCY:-8}
     # Metrics on :9100 are scraped over the compose network (no host port, so the worker can scale).
     expose: ["9100"]
+    restart: unless-stopped
+
+  transcriber:
+    build: ./services/transcriber
+    depends_on:
+      kafka-init: { condition: service_completed_successfully }
+      encounter-service: { condition: service_healthy }
+    environment:
+      KAFKA_BOOTSTRAP: kafka:9092
+      ENCOUNTER_SERVICE_URL: http://encounter-service:8080
+      WHISPER_MODEL: ${WHISPER_MODEL:-base.en}
+    expose: ["9101"]
     restart: unless-stopped
 
   review-app:

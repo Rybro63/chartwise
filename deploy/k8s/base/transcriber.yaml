@@ -1,0 +1,55 @@
+# Turns visit recordings into transcripts with a local Whisper model baked into the image; it
+# needs no egress. CPU-bound: one recording at a time per replica, up to the partition count of
+# encounter.recorded (6).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: transcriber
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: transcriber }
+  template:
+    metadata:
+      labels: { app: transcriber }
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9101"
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 10001 }
+      # Let a recording in progress finish before the pod stops.
+      terminationGracePeriodSeconds: 300
+      containers:
+        - name: transcriber
+          image: chartwise/transcriber
+          ports: [{ name: metrics, containerPort: 9101 }]
+          envFrom:
+            - configMapRef: { name: chartwise-config }
+          env:
+            - { name: TRANSCRIBER_PASSWORD, valueFrom: { secretKeyRef: { name: chartwise-secrets, key: TRANSCRIBER_PASSWORD } } }
+          livenessProbe:
+            tcpSocket: { port: metrics }
+            periodSeconds: 15
+          resources:
+            requests: { cpu: 500m, memory: 512Mi }
+            limits: { memory: 1536Mi }
+          securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true }
+---
+# The transcriber holds raw audio, so it may talk only to the encounter service, Kafka and DNS.
+# (Enforced where the CNI supports NetworkPolicy, as EKS's VPC CNI does when enabled; kind's
+# default CNI ignores it.)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: transcriber-egress
+spec:
+  podSelector:
+    matchLabels: { app: transcriber }
+  policyTypes: [Egress]
+  egress:
+    - to: [{ podSelector: { matchLabels: { app: encounter-service } } }]
+      ports: [{ port: 8080 }]
+    - to: [{ podSelector: { matchLabels: { app: kafka } } }]
+      ports: [{ port: 9092 }]
+    - to: [{ namespaceSelector: {}, podSelector: { matchLabels: { k8s-app: kube-dns } } }]
+      ports: [{ port: 53, protocol: UDP }, { port: 53, protocol: TCP }]

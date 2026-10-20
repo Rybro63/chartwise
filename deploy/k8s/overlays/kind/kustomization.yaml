@@ -15,6 +15,7 @@ secretGenerator:
       - ENCRYPTION_KEY=ZGV2LW9ubHktY2hhcnR3aXNlLWFlcy1rZXktMzJieXQ=
       - SEED_PASSWORD=chartwise-dev
       - WORKER_PASSWORD=chartwise-worker-dev
+      - TRANSCRIBER_PASSWORD=chartwise-transcriber-dev
 generatorOptions:
   disableNameSuffixHash: true
 # Images are built locally and loaded with `kind load docker-image` (see kind-up.sh).
@@ -23,9 +24,10 @@ images:
   - { name: chartwise/llm-gateway, newName: chartwise-llm-gateway, newTag: latest }
   - { name: chartwise/note-worker, newName: chartwise-note-worker, newTag: latest }
   - { name: chartwise/review-app, newName: chartwise-review-app, newTag: latest }
+  - { name: chartwise/transcriber, newName: chartwise-transcriber, newTag: latest }
 patches:
   # Locally loaded images must not be pulled from a registry.
-  - target: { kind: Deployment, name: "encounter-service|llm-gateway|note-worker|review-app" }
+  - target: { kind: Deployment, name: "encounter-service|llm-gateway|note-worker|review-app|transcriber" }
     patch: |
       - op: add
         path: /spec/template/spec/containers/0/imagePullPolicy

@@ -62,7 +62,7 @@ spec:
           command: ["/bin/bash", "-c"]
           args:
             - |
-              for t in encounter.created note.drafted note.approved chartwise.dead-letter; do
+              for t in encounter.created encounter.recorded note.drafted note.approved chartwise.dead-letter; do
                 /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists \
                   --topic $t --partitions 6 --replication-factor 1 || exit 1
               done

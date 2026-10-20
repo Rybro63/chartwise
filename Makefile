@@ -25,18 +25,21 @@ smoke: ## End-to-end smoke test against the running stack
 	python3 scripts/smoke.py
 
 # ---- tests ----
-test: test-java test-go test-python test-web ## Run every service's tests
+test: test-java test-go test-python test-transcriber test-web ## Run every service's tests
 test-java: ## Encounter service (Testcontainers: needs Docker)
 	cd services/encounter-service && mvn -B verify
 test-go: ## LLM gateway
 	cd services/llm-gateway && go vet ./... && go test -race ./...
 test-python: ## Note worker (includes the Kafka crash test)
 	cd services/note-worker && .venv/bin/python -m pytest -q
+test-transcriber: ## Transcriber (the model tests download Whisper base.en, about 145 MB, once)
+	cd services/transcriber && .venv/bin/python -m pytest -q
 test-web: ## Review app (end-to-end tests need `npx playwright install chromium` once)
 	cd apps/review-app && npm run lint && npm test && npm run build && npx playwright test
 
-venv: ## Create the note worker's virtualenv
+venv: ## Create the note worker's and transcriber's virtualenvs
 	cd services/note-worker && python3 -m venv .venv && .venv/bin/pip install -e '.[dev]'
+	cd services/transcriber && python3 -m venv .venv && .venv/bin/pip install -e '.[dev]'
 
 proto: ## Regenerate gRPC stubs (Go + Python)
 	scripts/gen-proto.sh

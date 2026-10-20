@@ -19,7 +19,7 @@ REGISTRY=$(terraform -chdir="$TF" output -raw ecr_registry)
 REGION=$(echo "$REGISTRY" | cut -d. -f4)
 
 aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "$REGISTRY"
-for s in encounter-service llm-gateway note-worker review-app; do
+for s in encounter-service llm-gateway note-worker review-app transcriber; do
   src="ghcr.io/$OWNER/chartwise-$s:$IMAGE_TAG"
   docker pull --platform linux/amd64 "$src"
   docker tag "$src" "$REGISTRY/chartwise/$s:$IMAGE_TAG"
@@ -40,6 +40,7 @@ if ! kubectl -n chartwise get secret chartwise-secrets >/dev/null 2>&1; then
     --from-literal=ENCRYPTION_KEY="$(openssl rand -base64 32)" \
     --from-literal=SEED_PASSWORD="$DEMO_PASSWORD" \
     --from-literal=WORKER_PASSWORD="$(openssl rand -hex 16)" \
+    --from-literal=TRANSCRIBER_PASSWORD="$(openssl rand -hex 16)" \
     ${ANTHROPIC_API_KEY:+--from-literal=ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY"}
 fi
 
@@ -49,7 +50,7 @@ if [[ "${LLM_PROVIDER:-fake}" != "fake" ]]; then
 fi
 kubectl -n chartwise wait --for=condition=complete job/db-init --timeout=300s
 kubectl -n chartwise wait --for=condition=complete job/kafka-topics --timeout=600s
-for d in hapi encounter-service llm-gateway note-worker review-app; do
+for d in hapi encounter-service llm-gateway note-worker review-app transcriber; do
   kubectl -n chartwise rollout status deploy/$d --timeout=900s
 done
 kubectl -n chartwise get pods -o wide

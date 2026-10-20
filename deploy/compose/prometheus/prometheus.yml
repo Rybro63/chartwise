@@ -17,5 +17,10 @@ scrape_configs:
       - names: ["note-worker"]
         type: A
         port: 9100
+  - job_name: transcriber
+    dns_sd_configs:
+      - names: ["transcriber"]
+        type: A
+        port: 9101
   - job_name: kafka
     static_configs: [{ targets: ["kafka-exporter:9308"] }]

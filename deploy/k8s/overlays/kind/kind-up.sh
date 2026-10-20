@@ -11,15 +11,15 @@ if ! "$KIND" get clusters | grep -qx chartwise; then
 fi
 
 if [[ "${SKIP_BUILD:-}" != "1" ]]; then
-  docker compose -f "$ROOT/compose.yaml" build encounter-service llm-gateway note-worker review-app
+  docker compose -f "$ROOT/compose.yaml" build encounter-service llm-gateway note-worker review-app transcriber
 fi
-for img in chartwise-encounter-service chartwise-llm-gateway chartwise-note-worker chartwise-review-app; do
+for img in chartwise-encounter-service chartwise-llm-gateway chartwise-note-worker chartwise-review-app chartwise-transcriber; do
   "$KIND" load docker-image "$img:latest" --name chartwise
 done
 
 kubectl apply -k "$HERE"
 kubectl -n chartwise wait --for=condition=complete job/kafka-topics --timeout=300s
-for d in hapi encounter-service llm-gateway note-worker review-app; do
+for d in hapi encounter-service llm-gateway note-worker review-app transcriber; do
   kubectl -n chartwise rollout status deploy/$d --timeout=600s
 done
 echo "Chartwise is up. Try: kubectl -n chartwise port-forward svc/review-app 3000:80"

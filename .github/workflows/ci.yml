@@ -49,6 +49,19 @@ jobs:
       # Includes the Kafka crash test (Testcontainers).
       - run: pytest -q
 
+  transcriber:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: services/transcriber } }
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.13", cache: pip, cache-dependency-path: services/transcriber/pyproject.toml }
+      - run: pip install -e '.[dev]'
+      # The model tests transcribe the committed synthetic fixture with the real Whisper model.
+      - uses: actions/cache@v4
+        with: { path: ~/.cache/huggingface, key: whisper-base.en }
+      - run: pytest -q
+
   review-app:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: apps/review-app } }
@@ -82,7 +95,7 @@ jobs:
         run: terraform init -backend=false && terraform validate && terraform fmt -check
 
   images:
-    needs: [encounter-service, llm-gateway, note-worker, review-app, manifests]
+    needs: [encounter-service, llm-gateway, note-worker, transcriber, review-app, manifests]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions: { contents: read, packages: write }
@@ -93,6 +106,7 @@ jobs:
           - { name: llm-gateway, context: services/llm-gateway }
           - { name: note-worker, context: services/note-worker }
           - { name: review-app, context: apps/review-app }
+          - { name: transcriber, context: services/transcriber }
     steps:
       - uses: actions/checkout@v5
       - name: Lowercase owner (GHCR image names must be lowercase)
@@ -125,7 +139,7 @@ jobs:
         with: { cluster_name: chartwise, config: deploy/k8s/overlays/kind/kind-config.yaml }
       - name: Pull and load images
         run: |
-          for s in encounter-service llm-gateway note-worker review-app; do
+          for s in encounter-service llm-gateway note-worker review-app transcriber; do
             docker pull ghcr.io/${{ env.OWNER }}/chartwise-$s:${{ github.sha }}
             docker tag ghcr.io/${{ env.OWNER }}/chartwise-$s:${{ github.sha }} chartwise-$s:latest
             kind load docker-image chartwise-$s:latest --name chartwise
