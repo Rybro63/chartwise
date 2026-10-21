@@ -22,9 +22,17 @@ from faster_whisper.vad import VadOptions, get_speech_timestamps
 SAMPLE_RATE = 16_000
 
 
-# Over-the-counter drugs patients mention that won't be in their record. Without a hint Whisper
-# heard "acetaminophen" as "a set of minifen".
-COMMON_DRUGS = ["acetaminophen", "ibuprofen", "naproxen", "aspirin", "loratadine", "cetirizine", "diphenhydramine"]
+# Drugs a visit may name that aren't in the patient's record: over-the-counter ones, and the most
+# commonly prescribed outpatient generics (new prescriptions, a relative's medicine). Without a
+# hint Whisper heard "acetaminophen" as "a set of minifen" and "tamsulosin" as "damn sullison".
+# The prompt holds about 224 tokens, so the patient's own medications go first.
+COMMON_DRUGS = [
+    "acetaminophen", "ibuprofen", "naproxen", "aspirin", "loratadine", "cetirizine", "diphenhydramine",
+    "atorvastatin", "lisinopril", "levothyroxine", "metformin", "amlodipine", "metoprolol", "omeprazole",
+    "simvastatin", "losartan", "albuterol", "gabapentin", "hydrochlorothiazide", "sertraline", "rosuvastatin",
+    "tamsulosin", "escitalopram", "bupropion", "furosemide", "pantoprazole", "trazodone", "montelukast",
+    "clopidogrel", "prednisone", "amoxicillin", "warfarin", "apixaban", "insulin",
+]
 
 
 @dataclass(frozen=True)
@@ -90,7 +98,11 @@ class Transcriber:
     def _utterances(self, samples: np.ndarray, speaker: str, hotwords: list[str]) -> list[Segment]:
         if not np.any(samples):
             return []
-        chunks = get_speech_timestamps(samples, VadOptions(min_silence_duration_ms=600, speech_pad_ms=150))
+        # Utterances are capped at 20 s: Whisper decodes 30 s windows and shares its context between
+        # the prompt and the output, so a long run of speech (a clinician's whole exam and plan)
+        # lost most of its words once the drug-name prompt grew.
+        chunks = get_speech_timestamps(samples, VadOptions(min_silence_duration_ms=600, speech_pad_ms=150,
+                                                           max_speech_duration_s=20))
         # A punctuated sentence naming the likely drugs: Whisper copies a prompt's style, so a bare
         # word list (faster-whisper's hotwords) cost the transcript its casing and punctuation.
         prompt = f"A clinic visit. Medications discussed may include {', '.join(dict.fromkeys(hotwords))}." if hotwords else None
